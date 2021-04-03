@@ -4,7 +4,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -22,4 +22,24 @@
  */
 #pragma once
 
-#include "base.hpp"
+#include "simd.hpp"
+
+#include "math/abs.hpp"
+#include "math/asin_acos.hpp"
+#include "math/atan.hpp"
+#include "math/clamp.hpp"
+#include "math/compiletime.hpp"
+#include "math/complex_math.hpp"
+#include "math/gamma.hpp"
+#include "math/hyperbolic.hpp"
+#include "math/interpolation.hpp"
+#include "math/log_exp.hpp"
+#include "math/logical.hpp"
+#include "math/min_max.hpp"
+#include "math/modzerobessel.hpp"
+#include "math/round.hpp"
+#include "math/saturation.hpp"
+#include "math/select.hpp"
+#include "math/sin_cos.hpp"
+#include "math/sqrt.hpp"
+#include "math/tan.hpp"

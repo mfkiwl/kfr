@@ -1,4 +1,4 @@
-/** @addtogroup dsp
+/** @addtogroup dsp_extra
  *  @{
  */
 /*
@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -29,6 +29,9 @@
 
 namespace kfr
 {
+inline namespace CMT_ARCH_NAME
+{
+
 /**
  * @brief Returns template expression that returns the sum of all the inputs
  */
@@ -43,18 +46,18 @@ namespace internal
 struct stereo_matrix
 {
     template <typename T, size_t N>
-    CMT_INLINE vec<vec<T, 2>, N> operator()(const vec<vec<T, 2>, N>& x) const
+    KFR_MEM_INTRINSIC vec<vec<T, 2>, N> operator()(const vec<vec<T, 2>, N>& x) const
     {
-        return process(x, csizeseq_t<N>());
+        return process(x, csizeseq<N>);
     }
     template <typename T, size_t N, size_t... indices>
-    CMT_INLINE vec<vec<T, 2>, N> process(const vec<vec<T, 2>, N>& x, csizes_t<indices...>) const
+    KFR_MEM_INTRINSIC vec<vec<T, 2>, N> process(const vec<vec<T, 2>, N>& x, csizes_t<indices...>) const
     {
         return vec<vec<T, 2>, N>(hadd(transpose(x[indices] * matrix))...);
     }
     const f64x2x2 matrix;
 };
-}
+} // namespace internal
 
 template <int = 0>
 CMT_GNU_CONSTEXPR f64x2x2 matrix_sum_diff()
@@ -71,11 +74,13 @@ CMT_GNU_CONSTEXPR f64x2x2 matrix_halfsum_halfdiff()
  * @brief Returns template expression that returns the vector of length 2 containing mix of the left and right
  * channels
  */
-template <typename Left, typename Right, typename Result = internal::expression_function<
-                                             internal::stereo_matrix, internal::expression_pack<Left, Right>>>
+template <typename Left, typename Right,
+          typename Result =
+              internal::expression_function<internal::stereo_matrix, internal::expression_pack<Left, Right>>>
 Result mixdown_stereo(Left&& left, Right&& right, const f64x2x2& matrix)
 {
     return Result(internal::stereo_matrix{ matrix },
                   pack(std::forward<Left>(left), std::forward<Right>(right)));
 }
-}
+} // namespace CMT_ARCH_NAME
+} // namespace kfr

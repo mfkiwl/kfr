@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -31,6 +31,8 @@
 #include <vector>
 
 namespace kfr
+{
+inline namespace CMT_ARCH_NAME
 {
 
 template <typename T>
@@ -123,43 +125,48 @@ private:
 
 using dft_cache = dft_cache_impl<>;
 
-template <typename T, size_t Tag>
+/// @brief Performs Direct DFT using cached plan
+template <typename T, univector_tag Tag>
 univector<complex<T>> dft(const univector<complex<T>, Tag>& input)
 {
     dft_plan_ptr<T> dft = dft_cache::instance().get(ctype_t<T>(), input.size());
-    univector<complex<T>> output(input.size());
+    univector<complex<T>> output(input.size(), std::numeric_limits<T>::quiet_NaN());
     univector<u8> temp(dft->temp_size);
     dft->execute(output, input, temp);
     return output;
 }
 
-template <typename T, size_t Tag>
+/// @brief Performs Inverse DFT using cached plan
+template <typename T, univector_tag Tag>
 univector<complex<T>> idft(const univector<complex<T>, Tag>& input)
 {
     dft_plan_ptr<T> dft = dft_cache::instance().get(ctype_t<T>(), input.size());
-    univector<complex<T>> output(input.size());
+    univector<complex<T>> output(input.size(), std::numeric_limits<T>::quiet_NaN());
     univector<u8> temp(dft->temp_size);
     dft->execute(output, input, temp, ctrue);
     return output;
 }
 
-template <typename T, size_t Tag>
+/// @brief Performs Real Direct DFT using cached plan
+template <typename T, univector_tag Tag>
 univector<complex<T>> realdft(const univector<T, Tag>& input)
 {
     dft_plan_real_ptr<T> dft = dft_cache::instance().getreal(ctype_t<T>(), input.size());
-    univector<complex<T>> output(input.size() / 2 + 1);
+    univector<complex<T>> output(input.size() / 2 + 1, std::numeric_limits<T>::quiet_NaN());
     univector<u8> temp(dft->temp_size);
     dft->execute(output, input, temp);
     return output;
 }
 
-template <typename T, size_t Tag>
+/// @brief Permorms Real Inverse DFT using cached plan
+template <typename T, univector_tag Tag>
 univector<T> irealdft(const univector<complex<T>, Tag>& input)
 {
-    dft_plan_real_ptr<T> dft = dft_cache::instance().getreal(ctype_t<T>(), input.size());
-    univector<T> output((input.size() - 1) * 2);
+    dft_plan_real_ptr<T> dft = dft_cache::instance().getreal(ctype_t<T>(), (input.size() - 1) * 2);
+    univector<T> output((input.size() - 1) * 2, std::numeric_limits<T>::quiet_NaN());
     univector<u8> temp(dft->temp_size);
     dft->execute(output, input, temp);
     return output;
 }
-}
+} // namespace CMT_ARCH_NAME
+} // namespace kfr

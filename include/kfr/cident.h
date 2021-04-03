@@ -16,14 +16,20 @@ extern char* gets(char* __s);
 #ifdef CMT_ARCH_X86
 #if defined(_M_X64) || defined(__x86_64__)
 #define CMT_ARCH_X64 1
+#define CMT_ARCH_BITNESS_NAME "64-bit"
 #else
 #define CMT_ARCH_X32 1
+#define CMT_ARCH_BITNESS_NAME "32-bit"
 #endif
+
+#ifndef CMT_FORCE_GENERIC_CPU
 
 #if defined __AVX512F__ && !defined CMT_ARCH_AVX512
 #define CMT_ARCH_AVX512 1
 #define CMT_ARCH_AVX2 1
 #define CMT_ARCH_AVX 1
+#define CMT_ARCH_SSE4_2 1
+#define CMT_ARCH_SSE4_1 1
 #define CMT_ARCH_SSE42 1
 #define CMT_ARCH_SSE41 1
 #define CMT_ARCH_SSSE3 1
@@ -34,6 +40,8 @@ extern char* gets(char* __s);
 #if defined __AVX2__ && !defined CMT_ARCH_AVX2
 #define CMT_ARCH_AVX2 1
 #define CMT_ARCH_AVX 1
+#define CMT_ARCH_SSE4_2 1
+#define CMT_ARCH_SSE4_1 1
 #define CMT_ARCH_SSE42 1
 #define CMT_ARCH_SSE41 1
 #define CMT_ARCH_SSSE3 1
@@ -43,6 +51,8 @@ extern char* gets(char* __s);
 #endif
 #if defined __AVX__ && !defined CMT_ARCH_AVX
 #define CMT_ARCH_AVX 1
+#define CMT_ARCH_SSE4_2 1
+#define CMT_ARCH_SSE4_1 1
 #define CMT_ARCH_SSE42 1
 #define CMT_ARCH_SSE41 1
 #define CMT_ARCH_SSSE3 1
@@ -52,6 +62,8 @@ extern char* gets(char* __s);
 #endif
 #if defined __SSE4_2__ && !defined CMT_ARCH_SSE4_2
 #define CMT_ARCH_SSE4_2 1
+#define CMT_ARCH_SSE42 1
+#define CMT_ARCH_SSE4_1 1
 #define CMT_ARCH_SSE41 1
 #define CMT_ARCH_SSSE3 1
 #define CMT_ARCH_SSE3 1
@@ -60,6 +72,7 @@ extern char* gets(char* __s);
 #endif
 #if defined __SSE4_1__ && !defined CMT_ARCH_SSE4_1
 #define CMT_ARCH_SSE4_1 1
+#define CMT_ARCH_SSE41 1
 #define CMT_ARCH_SSSE3 1
 #define CMT_ARCH_SSE3 1
 #define CMT_ARCH_SSE2 1
@@ -107,33 +120,50 @@ extern char* gets(char* __s);
 #define CMT_ARCH_LZCNT 1
 #endif
 
+#endif // CMT_FORCE_GENERIC_CPU
+
 #if defined CMT_ARCH_AVX512
 #define CMT_ARCH_NAME avx512
+#define CMT_ARCH_IS_AVX512 1
 #elif defined CMT_ARCH_AVX2
 #define CMT_ARCH_NAME avx2
+#define CMT_ARCH_IS_AVX2 1
 #elif defined CMT_ARCH_AVX
 #define CMT_ARCH_NAME avx
-#elif defined CMT_ARCH_SSE4_1
+#define CMT_ARCH_IS_AVX 1
+#elif defined CMT_ARCH_SSE42
+#define CMT_ARCH_NAME sse42
+#define CMT_ARCH_IS_SSE42 1
+#elif defined CMT_ARCH_SSE41
 #define CMT_ARCH_NAME sse41
+#define CMT_ARCH_IS_SSE4 1
 #elif defined CMT_ARCH_SSSE3
 #define CMT_ARCH_NAME ssse3
+#define CMT_ARCH_IS_SSSE3 1
 #elif defined CMT_ARCH_SSE3
 #define CMT_ARCH_NAME sse3
+#define CMT_ARCH_IS_SSE3 1
 #elif defined CMT_ARCH_SSE2
 #define CMT_ARCH_NAME sse2
+#define CMT_ARCH_IS_SSE2 1
 #elif defined CMT_ARCH_SSE
 #define CMT_ARCH_NAME sse
+#define CMT_ARCH_IS_SSE 1
+#else
+#define CMT_ARCH_IS_GENERIC 1
 #endif
 
 #elif defined(CMT_ARCH_ARM)
 
 #if defined(__aarch64__)
 #define CMT_ARCH_X64 1
+#define CMT_ARCH_BITNESS_NAME "64-bit"
 #else
 #define CMT_ARCH_X32 1
+#define CMT_ARCH_BITNESS_NAME "32-bit"
 #endif
 
-#ifdef __ARM_NEON__
+#if defined __ARM_NEON__ || defined __ARM_NEON
 
 #if __ARM_ARCH >= 8 && defined(__aarch64__)
 #define CMT_ARCH_NEON64 1
@@ -142,22 +172,95 @@ extern char* gets(char* __s);
 #else
 #define CMT_ARCH_NEON 1
 #define CMT_ARCH_NAME neon
-#define KFR_NO_NATIVE_F64 1
+#define CMT_NO_NATIVE_F64 1
 #endif
 #endif
 
+#endif
+
+#if defined CMT_ARCH_ARM && defined CMT_ARCH_X64
+#define CMT_ARCH_ARM64 1
+#define CMT_ARCH_AARCH64 1
 #endif
 
 #ifndef CMT_ARCH_NAME
-#define CMT_ARCH_NAME common
+#define CMT_ARCH_NAME generic
 #endif
 
-#ifndef KFR_NO_NATIVE_F64
-#define KFR_NATIVE_F64 1
+#define CMT_ARCH_ID_GENERIC 0
+
+#define CMT_ARCH_ID_SSE2 1
+#define CMT_ARCH_ID_SSE3 2
+#define CMT_ARCH_ID_SSSE3 3
+#define CMT_ARCH_ID_SSE41 4
+#define CMT_ARCH_ID_SSE42 5
+#define CMT_ARCH_ID_AVX 6
+#define CMT_ARCH_ID_AVX2 7
+#define CMT_ARCH_ID_AVX512 8
+
+#define CMT_ARCH_ID_NEON 1
+#define CMT_ARCH_ID_NEON64 2
+
+#ifdef CMT_ENABLE_SSE2
+#define CMT_EXPAND_IF_ARCH_sse2(...) __VA_ARGS__
+#else
+#define CMT_EXPAND_IF_ARCH_sse2(...)
 #endif
 
-#ifndef KFR_NO_NATIVE_I64
-#define KFR_NATIVE_I64 1
+#ifdef CMT_ENABLE_SSE3
+#define CMT_EXPAND_IF_ARCH_sse3(...) __VA_ARGS__
+#else
+#define CMT_EXPAND_IF_ARCH_sse3(...)
+#endif
+
+#ifdef CMT_ENABLE_SSSE3
+#define CMT_EXPAND_IF_ARCH_ssse3(...) __VA_ARGS__
+#else
+#define CMT_EXPAND_IF_ARCH_ssse3(...)
+#endif
+
+#ifdef CMT_ENABLE_SSE41
+#define CMT_EXPAND_IF_ARCH_sse41(...) __VA_ARGS__
+#else
+#define CMT_EXPAND_IF_ARCH_sse41(...)
+#endif
+
+#ifdef CMT_ENABLE_SSE41
+#define CMT_EXPAND_IF_ARCH_sse41(...) __VA_ARGS__
+#else
+#define CMT_EXPAND_IF_ARCH_sse41(...)
+#endif
+
+#ifdef CMT_ENABLE_SSE42
+#define CMT_EXPAND_IF_ARCH_sse42(...) __VA_ARGS__
+#else
+#define CMT_EXPAND_IF_ARCH_sse42(...)
+#endif
+
+#ifdef CMT_ENABLE_AVX
+#define CMT_EXPAND_IF_ARCH_avx(...) __VA_ARGS__
+#else
+#define CMT_EXPAND_IF_ARCH_avx(...)
+#endif
+
+#ifdef CMT_ENABLE_AVX2
+#define CMT_EXPAND_IF_ARCH_avx2(...) __VA_ARGS__
+#else
+#define CMT_EXPAND_IF_ARCH_avx2(...)
+#endif
+
+#ifdef CMT_ENABLE_AVX512
+#define CMT_EXPAND_IF_ARCH_avx512(...) __VA_ARGS__
+#else
+#define CMT_EXPAND_IF_ARCH_avx512(...)
+#endif
+
+#ifndef CMT_NO_NATIVE_F64
+#define CMT_NATIVE_F64 1
+#endif
+
+#ifndef CMT_NO_NATIVE_I64
+#define CMT_NATIVE_I64 1
 #endif
 
 #define CMT_STRINGIFY2(x) #x
@@ -169,19 +272,23 @@ extern char* gets(char* __s);
 
 #if defined(__APPLE__)
 #include "TargetConditionals.h"
-#ifdef TARGET_OS_IPHONE
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 #define CMT_OS_IOS 1
 #define CMT_OS_MOBILE 1
-#elif TARGET_IPHONE_SIMULATOR
+#define CMT_OS_APPLE 1
+#elif defined(TARGET_IPHONE_SIMULATOR) && TARGET_IPHONE_SIMULATOR
 #define CMT_OS_IOS 1
 #define CMT_OS_IOS_SIMULATOR 1
 #define CMT_OS_MOBILE 1
-#elif TARGET_OS_MAC
+#define CMT_OS_APPLE 1
+#elif defined(TARGET_OS_MAC) && TARGET_OS_MAC
 #define CMT_OS_MAC 1
 #define CMT_OS_MACOS 1
 #define CMT_OS_OSX 1
+#define CMT_OS_APPLE 1
 #endif
 #define CMT_OS_POSIX 1
+#define CMT_OS_APPLE 1
 #endif
 
 #if defined(__ANDROID__)
@@ -240,33 +347,40 @@ extern char* gets(char* __s);
 
 #define CMT_NODEBUG
 // __attribute__((__nodebug__))
-#ifdef NDEBUG
+
+// GCC 9 broke attributes on lambdas.
+#if defined(NDEBUG) && (!defined(__GNUC__) || __GNUC__ != 9)
 #define CMT_ALWAYS_INLINE __attribute__((__always_inline__))
 #else
 #define CMT_ALWAYS_INLINE
 #endif
 #define CMT_INLINE __inline__ CMT_ALWAYS_INLINE
-#define CMT_INTRIN CMT_INLINE CMT_NODEBUG
 #define CMT_INLINE_MEMBER CMT_ALWAYS_INLINE
 #define CMT_INLINE_LAMBDA CMT_INLINE_MEMBER
 #define CMT_NOINLINE __attribute__((__noinline__))
 #define CMT_FLATTEN __attribute__((__flatten__))
 #define CMT_RESTRICT __restrict__
-#define CMT_FUNC __inline__
 
 #elif defined(CMT_MSVC_ATTRIBUTES)
 
+#define CMT_ALWAYS_INLINE __forceinline
 #define CMT_NODEBUG
-#define CMT_INLINE inline __forceinline
-#define CMT_INTRIN CMT_INLINE CMT_NODEBUG
+#define CMT_INLINE /*inline*/ __forceinline
 #define CMT_INLINE_MEMBER __forceinline
+#if _MSC_VER >= 1927
+#define CMT_INLINE_LAMBDA [[msvc::forceinline]]
+#else
 #define CMT_INLINE_LAMBDA
+#endif
 #define CMT_NOINLINE __declspec(noinline)
 #define CMT_FLATTEN
 #define CMT_RESTRICT __restrict
-#define CMT_FUNC inline
 
 #endif
+
+#define CMT_INTRINSIC CMT_INLINE CMT_NODEBUG
+#define CMT_MEM_INTRINSIC CMT_INLINE CMT_NODEBUG
+#define CMT_FUNCTION inline
 
 #if defined _MSC_VER && _MSC_VER >= 1900 &&                                                                  \
     (!defined(__clang__) ||                                                                                  \
@@ -382,8 +496,10 @@ extern char* gets(char* __s);
 
 #if CMT_HAS_NOEXCEPT
 #define CMT_NOEXCEPT noexcept
+#define CMT_NOEXCEPT_SPEC(...) noexcept(__VA_ARGS__)
 #else
 #define CMT_NOEXCEPT
+#define CMT_NOEXCEPT_SPEC(...)
 #endif
 
 #if CMT_COMPILER_GNU && !defined(__EXCEPTIONS)
@@ -487,16 +603,182 @@ extern char* gets(char* __s);
 #define CMT_OS_NAME "unknown"
 #endif
 
-#if defined CMT_COMPILER_CLANG
+#if defined CMT_COMPILER_INTEL
 #if defined _MSC_VER
-#define CMT_COMPIER_NAME "clang-msvc"
+#define CMT_COMPILER_NAME "intel-msvc"
+#define CMT_COMPILER_FULL_NAME                                                                               \
+    "clang-msvc-" CMT_STRINGIFY(__ICL) "." CMT_STRINGIFY(__INTEL_COMPILER_UPDATE) "." CMT_STRINGIFY(         \
+        __INTEL_COMPILER_BUILD_DATE)
 #else
-#define CMT_COMPIER_NAME "clang"
+#define CMT_COMPILER_NAME "intel"
+#ifdef __INTEL_CLANG_COMPILER
+#define CMT_COMPILER_INTEL_SPEC "-clang"
+#ifdef __INTEL_LLVM_COMPILER
+#define CMT_COMPILER_INTEL_SPEC "-clang-llvm"
+#endif
+#else
+#ifdef __INTEL_LLVM_COMPILER
+#define CMT_COMPILER_INTEL_SPEC "-llvm"
+#else
+#define CMT_COMPILER_INTEL_SPEC ""
+#endif
+#endif
+#define CMT_COMPILER_FULL_NAME                                                                               \
+    "intel-" CMT_STRINGIFY(__INTEL_COMPILER) CMT_COMPILER_INTEL_SPEC                                         \
+        "." CMT_STRINGIFY(__INTEL_COMPILER_UPDATE) "." CMT_STRINGIFY(__INTEL_COMPILER_BUILD_DATE)
+#endif
+#elif defined CMT_COMPILER_CLANG
+#if defined _MSC_VER
+#define CMT_COMPILER_NAME "clang-msvc"
+#define CMT_COMPILER_FULL_NAME                                                                               \
+    "clang-msvc-" CMT_STRINGIFY(__clang_major__) "." CMT_STRINGIFY(__clang_minor__) "." CMT_STRINGIFY(       \
+        __clang_patchlevel__)
+#else
+#define CMT_COMPILER_NAME "clang-mingw"
+#define CMT_COMPILER_FULL_NAME                                                                               \
+    "clang-" CMT_STRINGIFY(__clang_major__) "." CMT_STRINGIFY(__clang_minor__) "." CMT_STRINGIFY(            \
+        __clang_patchlevel__)
 #endif
 #elif defined CMT_COMPILER_GCC
-#define CMT_COMPIER_NAME "gcc"
+#define CMT_COMPILER_NAME "gcc"
+#define CMT_COMPILER_FULL_NAME                                                                               \
+    "gcc-" CMT_STRINGIFY(__GNUC__) "." CMT_STRINGIFY(__GNUC_MINOR__) "." CMT_STRINGIFY(__GNUC_PATCHLEVEL__)
 #elif defined CMT_COMPILER_MSVC
-#define CMT_COMPIER_NAME "msvc"
+#define CMT_COMPILER_NAME "msvc"
+#define CMT_COMPILER_FULL_NAME "msvc-" CMT_STRINGIFY(_MSC_VER) "." CMT_STRINGIFY(_MSC_FULL_VER)
 #else
-#define CMT_COMPIER_NAME "unknown"
+#define CMT_COMPILER_NAME "unknown"
+#define CMT_COMPILER_FULL_NAME "unknown"
+#endif
+
+#define CMT_CONCAT(a, b) a##b
+
+#define CMT_NARGS2(_0, _1, _2, _3, _4, _5, _6, _7, _8, _9, _10, ...) _10
+#define CMT_NARGS(...) CMT_NARGS2(__VA_ARGS__, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
+
+#ifdef CMT_MULTI_ENABLED_AVX512
+#define CMT_IF_ENABLED_AVX512(...) __VA_ARGS__
+#else
+#define CMT_IF_ENABLED_AVX512(...)
+#endif
+
+#ifdef CMT_MULTI_ENABLED_AVX2
+#define CMT_IF_ENABLED_AVX2(...) __VA_ARGS__
+#else
+#define CMT_IF_ENABLED_AVX2(...)
+#endif
+
+#ifdef CMT_MULTI_ENABLED_AVX
+#define CMT_IF_ENABLED_AVX(...) __VA_ARGS__
+#else
+#define CMT_IF_ENABLED_AVX(...)
+#endif
+
+#ifdef CMT_MULTI_ENABLED_SSE42
+#define CMT_IF_ENABLED_SSE42(...) __VA_ARGS__
+#else
+#define CMT_IF_ENABLED_SSE42(...)
+#endif
+
+#ifdef CMT_MULTI_ENABLED_SSE41
+#define CMT_IF_ENABLED_SSE41(...) __VA_ARGS__
+#else
+#define CMT_IF_ENABLED_SSE41(...)
+#endif
+
+#ifdef CMT_MULTI_ENABLED_SSSE3
+#define CMT_IF_ENABLED_SSSE3(...) __VA_ARGS__
+#else
+#define CMT_IF_ENABLED_SSSE3(...)
+#endif
+
+#ifdef CMT_MULTI_ENABLED_SSE3
+#define CMT_IF_ENABLED_SSE3(...) __VA_ARGS__
+#else
+#define CMT_IF_ENABLED_SSE3(...)
+#endif
+
+#ifdef CMT_MULTI_ENABLED_SSE2
+#define CMT_IF_ENABLED_SSE2(...) __VA_ARGS__
+#else
+#define CMT_IF_ENABLED_SSE2(...)
+#endif
+
+#define CMT_IF_IS_AVX512(...)
+#define CMT_IF_IS_AVX2(...)
+#define CMT_IF_IS_AVX(...)
+#define CMT_IF_IS_SSE42(...)
+#define CMT_IF_IS_SSE41(...)
+#define CMT_IF_IS_SSSE3(...)
+#define CMT_IF_IS_SSE3(...)
+#define CMT_IF_IS_SSE2(...)
+
+#if defined CMT_ARCH_AVX512
+#undef CMT_IF_IS_AVX512
+#define CMT_IF_IS_AVX512(...) __VA_ARGS__
+#elif defined CMT_ARCH_AVX2
+#undef CMT_IF_IS_AVX2
+#define CMT_IF_IS_AVX2(...) __VA_ARGS__
+#elif defined CMT_ARCH_AVX
+#undef CMT_IF_IS_AVX
+#define CMT_IF_IS_AVX(...) __VA_ARGS__
+#elif defined CMT_ARCH_SSE42
+#undef CMT_IF_IS_SSE42
+#define CMT_IF_IS_SSE42(...) __VA_ARGS__
+#elif defined CMT_ARCH_SSE41
+#undef CMT_IF_IS_SSE41
+#define CMT_IF_IS_SSE41(...) __VA_ARGS__
+#elif defined CMT_ARCH_SSSE3
+#undef CMT_IF_IS_SSSE3
+#define CMT_IF_IS_SSSE3(...) __VA_ARGS__
+#elif defined CMT_ARCH_SSE3
+#undef CMT_IF_IS_SSE3
+#define CMT_IF_IS_SSE3(...) __VA_ARGS__
+#elif defined CMT_ARCH_SSE2
+#undef CMT_IF_IS_SSE2
+#define CMT_IF_IS_SSE2(...) __VA_ARGS__
+#endif
+
+#ifdef CMT_MULTI
+
+#define CMT_MULTI_PROTO_GATE(...)                                                                            \
+    if (cpu == cpu_t::runtime)                                                                               \
+        cpu = get_cpu();                                                                                     \
+    switch (cpu)                                                                                             \
+    {                                                                                                        \
+    case cpu_t::avx512:                                                                                      \
+        CMT_IF_ENABLED_AVX512(return avx512::__VA_ARGS__;)                                                   \
+    case cpu_t::avx2:                                                                                        \
+        CMT_IF_ENABLED_AVX2(return avx2::__VA_ARGS__;)                                                       \
+    case cpu_t::avx:                                                                                         \
+        CMT_IF_ENABLED_AVX(return avx::__VA_ARGS__;)                                                         \
+    case cpu_t::sse41:                                                                                       \
+        CMT_IF_ENABLED_SSE41(return sse41::__VA_ARGS__;)                                                     \
+    case cpu_t::ssse3:                                                                                       \
+        CMT_IF_ENABLED_SSSE3(return ssse3::__VA_ARGS__;)                                                     \
+    case cpu_t::sse3:                                                                                        \
+        CMT_IF_ENABLED_SSE3(return sse3::__VA_ARGS__;)                                                       \
+    case cpu_t::sse2:                                                                                        \
+        CMT_IF_ENABLED_SSE2(return sse2::__VA_ARGS__;)                                                       \
+    default:                                                                                                 \
+        return {};                                                                                           \
+    }
+#define CMT_MULTI_PROTO(...)                                                                                 \
+    inline namespace CMT_ARCH_NAME                                                                           \
+    {                                                                                                        \
+    __VA_ARGS__                                                                                              \
+    }                                                                                                        \
+    CMT_IF_ENABLED_SSE2(CMT_IF_IS_SSE2(inline) namespace sse2{ __VA_ARGS__ })                                \
+    CMT_IF_ENABLED_SSE3(CMT_IF_IS_SSE3(inline) namespace sse3{ __VA_ARGS__ })                                \
+    CMT_IF_ENABLED_SSSE3(CMT_IF_IS_SSSE3(inline) namespace ssse3{ __VA_ARGS__ })                             \
+    CMT_IF_ENABLED_SSE41(CMT_IF_IS_SSE41(inline) namespace sse41{ __VA_ARGS__ })                             \
+    CMT_IF_ENABLED_AVX(CMT_IF_IS_AVX(inline) namespace avx{ __VA_ARGS__ })                                   \
+    CMT_IF_ENABLED_AVX2(CMT_IF_IS_AVX2(inline) namespace avx2{ __VA_ARGS__ })                                \
+    CMT_IF_ENABLED_AVX512(CMT_IF_IS_AVX512(inline) namespace avx512{ __VA_ARGS__ })
+#else
+#define CMT_MULTI_PROTO(...)                                                                                 \
+    inline namespace CMT_ARCH_NAME                                                                           \
+    {                                                                                                        \
+    __VA_ARGS__                                                                                              \
+    }
 #endif

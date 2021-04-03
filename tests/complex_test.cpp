@@ -6,10 +6,14 @@
 
 #include <kfr/testo/testo.hpp>
 
+#include <complex>
 #include <kfr/base.hpp>
 #include <kfr/io.hpp>
 
 using namespace kfr;
+
+namespace CMT_ARCH_NAME
+{
 
 TEST(complex_vector)
 {
@@ -68,9 +72,11 @@ TEST(complex_math)
 {
     const vec<c32, 1> a{ c32{ 1, 2 } };
     const vec<c32, 1> b{ c32{ 3, 4 } };
+    CHECK(c32(vec<c32, 1>(2)[0]) == c32{ 2, 0 });
     CHECK(a + b == make_vector(c32{ 4, 6 }));
     CHECK(a - b == make_vector(c32{ -2, -2 }));
     CHECK(a * b == make_vector(c32{ -5, 10 }));
+    CHECK(a * vec<c32, 1>(2) == make_vector(c32{ 2, 4 }));
     CHECK(a * 2 == make_vector(c32{ 2, 4 }));
     CHECK(a / b == make_vector(c32{ 0.44f, 0.08f }));
     CHECK(-a == make_vector(c32{ -1, -2 }));
@@ -88,8 +94,12 @@ TEST(complex_math)
     CHECK(cabs(-3.f) == 3.f);
     CHECK(cabs(make_vector(-3.f)) == make_vector(3.f));
 
-    testo::epsilon<f32>() *= 5;
-    testo::epsilon<f64>() *= 5;
+    CHECK(carg(c32{ +1.f, 0.f }) == 0.f);
+    CHECK(carg(c32{ 0.f, +1.f }) == c_pi<float> / 2);
+    CHECK(carg(c32{ 0.f, -1.f }) == -c_pi<float> / 2);
+    CHECK(carg(c32{ -1.f, 0.f }) == c_pi<float>);
+
+    testo::eplison_scope<void> eps(5);
 
     CHECK(csin(c32{ 1.f, 1.f }) == c32{ 1.2984575814159773f, 0.634963914784736f });
     CHECK(ccos(c32{ 1.f, 1.f }) == c32{ 0.8337300251311489f, -0.9888977057628651f });
@@ -104,7 +114,7 @@ TEST(complex_math)
     CHECK(cexp2(c32{ 1.f, 1.f }) == c32{ 1.5384778027279442f, 1.2779225526272695f });
     CHECK(cexp10(c32{ 1.f, 1.f }) == c32{ -6.682015101903131f, 7.439803369574931f });
 
-#ifdef KFR_NATIVE_F64
+#ifdef CMT_NATIVE_F64
     CHECK(csin(c64{ 1.0, 1.0 }) == c64{ 1.2984575814159773, 0.634963914784736 });
     CHECK(ccos(c64{ 1.0, 1.0 }) == c64{ 0.8337300251311489, -0.9888977057628651 });
     CHECK(csinh(c64{ 1.0, 1.0 }) == c64{ 0.634963914784736, 1.2984575814159773 });
@@ -150,6 +160,19 @@ TEST(complex_basic_expressions)
     CHECK(uv3[14] == c32{ 14, 0 });
 }
 
+TEST(complex_functions)
+{
+    CHECK(csqr(complex<f32>(4.f, 0.f)) == c32{ 16.f, 0.f });
+    CHECK(csqrt(complex<f32>(16.f, 0.f)) == c32{ 4.f, 0.f });
+
+    CHECK(csqr(complex<f32>(1.f, 4.f)) == c32{ -15.f, 8.f });
+
+    CHECK(csqrt(complex<f32>(15.f, 8.f)) == c32{ 4.f, 1.f });
+    CHECK(csqrt(complex<f32>(-15.f, 8.f)) == c32{ 1.f, 4.f });
+    CHECK(csqrt(complex<f32>(15.f, -8.f)) == c32{ 4.f, -1.f });
+    CHECK(csqrt(complex<f32>(-15.f, -8.f)) == c32{ 1.f, -4.f });
+}
+
 TEST(complex_function_expressions)
 {
     const univector<c32, 4> uv1 = sqr(counter());
@@ -176,15 +199,8 @@ TEST(complex_function_expressions)
 
 TEST(static_tests)
 {
-#ifdef CMT_ARCH_SSE2
-    static_assert(platform<f32, cpu_t::sse2>::vector_width == 4, "");
-    static_assert(platform<c32, cpu_t::sse2>::vector_width == 2, "");
-    static_assert(platform<i32, cpu_t::sse2>::vector_width == 4, "");
-    static_assert(platform<complex<i32>, cpu_t::sse2>::vector_width == 2, "");
-#endif
-
-    static_assert(is_numeric<vec<complex<float>, 4>>::value, "");
-    static_assert(is_numeric_args<vec<complex<float>, 4>>::value, "");
+    static_assert(is_numeric<vec<complex<float>, 4>>, "");
+    static_assert(is_numeric_args<vec<complex<float>, 4>>, "");
 
     static_assert(sizeof(vec<c32, 4>) == sizeof(vec<f32, 8>), "");
     static_assert(vec<f32, 4>::size() == 4, "");
@@ -203,16 +219,19 @@ TEST(static_tests)
     testo::assert_is_same<ftype<vec<complex<i32>, 4>>, vec<complex<f32>, 4>>();
     testo::assert_is_same<ftype<vec<complex<i64>, 8>>, vec<complex<f64>, 8>>();
 
-    testo::assert_is_same<kfr::internal::arg<int>, kfr::internal::expression_scalar<int, 1>>();
+    testo::assert_is_same<kfr::internal::arg<int>, kfr::internal::expression_scalar<int>>();
     testo::assert_is_same<kfr::internal::arg<complex<int>>,
-                          kfr::internal::expression_scalar<kfr::complex<int>, 1>>();
+                          kfr::internal::expression_scalar<kfr::complex<int>>>();
 
-    testo::assert_is_same<common_type<complex<int>, double>, complex<double>>();
+    testo::assert_is_same<kfr::common_type<complex<int>, double>, complex<double>>();
 }
+} // namespace CMT_ARCH_NAME
 
+#ifndef KFR_NO_MAIN
 int main()
 {
     println(library_version());
 
     return testo::run_all("", true);
 }
+#endif

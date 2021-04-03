@@ -1,4 +1,4 @@
-/** @addtogroup io
+/** @addtogroup string_io
  *  @{
  */
 /*
@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -25,14 +25,52 @@
  */
 #pragma once
 
-#include "../base/complex.hpp"
 #include "../base/univector.hpp"
-#include "../base/vec.hpp"
 #include "../cometa/string.hpp"
+#include "../simd/complex.hpp"
+#include "../simd/vec.hpp"
 #include <cmath>
+#include <vector>
 
 namespace cometa
 {
+
+template <>
+struct representation<cometa::special_value>
+{
+    using type = std::string;
+    static std::string get(const cometa::special_value& value)
+    {
+        using cometa::special_constant;
+        switch (value.c)
+        {
+        case special_constant::default_constructed:
+            return "default_constructed";
+        case special_constant::infinity:
+            return "infinity";
+        case special_constant::neg_infinity:
+            return "neg_infinity";
+        case special_constant::min:
+            return "min";
+        case special_constant::max:
+            return "max";
+        case special_constant::neg_max:
+            return "neg_max";
+        case special_constant::lowest:
+            return "lowest";
+        case special_constant::integer:
+            return as_string(value.ll);
+        case special_constant::floating_point:
+            return as_string(value.d);
+        case special_constant::epsilon:
+            return "epsilon";
+        case special_constant::random_bits:
+            return "random_bits";
+        default:
+            return "unknown";
+        }
+    }
+};
 
 namespace details
 {
@@ -79,7 +117,7 @@ inline std::string array_to_string(const T* source, size_t N)
     {
         if (i > 0)
         {
-            if (i % details::number_columns == 0 || kfr::is_vec<T>::value)
+            if (i % details::number_columns == 0 || kfr::is_vec<T>)
                 str += "\n";
             else
                 str += " ";
@@ -106,7 +144,7 @@ inline std::string array_to_string(const kfr::complex<T>* source, size_t N)
     }
     return str;
 }
-}
+} // namespace details
 
 template <typename T>
 struct representation<kfr::complex<T>>
@@ -115,6 +153,17 @@ struct representation<kfr::complex<T>>
     static std::string get(const kfr::complex<T>& value)
     {
         return as_string(value.real()) + " + " + as_string(value.imag()) + "j";
+    }
+};
+
+template <char t, int width, int prec, typename T>
+struct representation<details::fmt_t<kfr::complex<T>, t, width, prec>>
+{
+    using type = std::string;
+    static std::string get(const details::fmt_t<kfr::complex<T>, t, width, prec>& value)
+    {
+        return as_string(fmt<t, width, prec>(value.value.real())) + " + " +
+               as_string(fmt<t, width, prec>(value.value.imag())) + "j";
     }
 };
 
@@ -148,7 +197,7 @@ struct representation<kfr::mask<T, N>>
     }
 };
 
-template <typename T, size_t Tag>
+template <typename T, kfr::univector_tag Tag>
 struct representation<kfr::univector<T, Tag>>
 {
     using type = std::string;
@@ -157,9 +206,29 @@ struct representation<kfr::univector<T, Tag>>
         return details::array_to_string(value.data(), value.size());
     }
 };
-}
+template <typename T, size_t Size>
+struct representation<std::array<T, Size>>
+{
+    using type = std::string;
+    static std::string get(const std::array<T, Size>& value)
+    {
+        return details::array_to_string(value.data(), value.size());
+    }
+};
+template <typename T, typename Allocator>
+struct representation<std::vector<T, Allocator>>
+{
+    using type = std::string;
+    static std::string get(const std::vector<T, Allocator>& value)
+    {
+        return details::array_to_string(value.data(), value.size());
+    }
+};
+} // namespace cometa
 
 namespace kfr
+{
+inline namespace CMT_ARCH_NAME
 {
 
 namespace internal
@@ -198,10 +267,16 @@ struct expression_debug_printer : output_expression
         return input;
     }
 };
-}
-inline internal::expression_printer printer() { return internal::expression_printer(); }
-inline internal::expression_debug_printer debug_printer() { return internal::expression_debug_printer(); }
+} // namespace internal
 
+/// @brief Returns an output expression that prints the values
+inline internal::expression_printer printer() { return internal::expression_printer(); }
+
+/// @brief Returns an output expression that prints the values with their types (used for debug)
+inline internal::expression_debug_printer debug_printer() { return internal::expression_debug_printer(); }
+} // namespace CMT_ARCH_NAME
+
+/// @brief Converts dB value to string (uses oo for infinity symbol)
 template <typename T>
 std::string dB_to_string(const T& value, double minimum = -140.0)
 {
@@ -210,6 +285,7 @@ std::string dB_to_string(const T& value, double minimum = -140.0)
     return as_string(fmtwidth<0, 2>(value), " dB");
 }
 
+/// @brief Converts dB value to string (uses infinity symbol in utf-8 encoding)
 template <typename T>
 std::string dB_to_utf8string(const T& value, double minimum = -140.0)
 {
@@ -217,4 +293,4 @@ std::string dB_to_utf8string(const T& value, double minimum = -140.0)
         return "-\xE2\x88\x9E dB"; // infinity symbol
     return as_string(fmtwidth<0, 2>(value), " dB");
 }
-}
+} // namespace kfr

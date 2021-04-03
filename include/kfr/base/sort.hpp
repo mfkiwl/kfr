@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -25,14 +25,17 @@
  */
 #pragma once
 
-#include "min_max.hpp"
-#include "shuffle.hpp"
-#include "vec.hpp"
+#include "../math/min_max.hpp"
+#include "../simd/shuffle.hpp"
+#include "../simd/vec.hpp"
 
 namespace kfr
 {
+inline namespace CMT_ARCH_NAME
+{
+
 /**
- * Sort the elements in the vector in ascending order
+ * @brief Sort the elements in the vector in ascending order
  * @param x input vector
  * @return sorted vector
  * @code
@@ -40,12 +43,12 @@ namespace kfr
  * @endcode
  */
 template <typename T, size_t N>
-CMT_INLINE vec<T, N> sort(const vec<T, N>& x)
+KFR_INTRINSIC vec<T, N> sort(const vec<T, N>& x)
 {
     constexpr size_t Nhalf = N / 2;
-    vec<T, Nhalf> e = low(x);
-    vec<T, Nhalf> o = high(x);
-    constexpr auto blend0 = cconcat(csizes_t<1>(), csizeseq_t<Nhalf - 1, 0, 0>());
+    vec<T, Nhalf> e        = low(x);
+    vec<T, Nhalf> o        = high(x);
+    constexpr auto blend0  = cconcat(csizes<1>, csizeseq<Nhalf - 1, 0, 0>);
     for (size_t i = 0; i < Nhalf; i++)
     {
         vec<T, Nhalf> t;
@@ -61,11 +64,11 @@ CMT_INLINE vec<T, N> sort(const vec<T, N>& x)
         o = rotateleft<1>(o);
         e = t;
     }
-    return interleavehalfs(concat(e, o));
+    return interleavehalves(concat(e, o));
 }
 
 /**
- * Sort the elements in the vector in descending order
+ * @brief Sort the elements in the vector in descending order
  * @param x input vector
  * @return sorted vector
  * @code
@@ -73,12 +76,12 @@ CMT_INLINE vec<T, N> sort(const vec<T, N>& x)
  * @endcode
  */
 template <typename T, size_t N>
-CMT_INLINE vec<T, N> sortdesc(const vec<T, N>& x)
+KFR_INTRINSIC vec<T, N> sortdesc(const vec<T, N>& x)
 {
     constexpr size_t Nhalf = N / 2;
-    vec<T, Nhalf> e = low(x);
-    vec<T, Nhalf> o = high(x);
-    constexpr auto blend0 = cconcat(csizes_t<1>(), csizeseq_t<Nhalf - 1, 0, 0>());
+    vec<T, Nhalf> e        = low(x);
+    vec<T, Nhalf> o        = high(x);
+    constexpr auto blend0  = cconcat(csizes<1>, csizeseq<Nhalf - 1, 0, 0>);
     for (size_t i = 0; i < Nhalf; i++)
     {
         vec<T, Nhalf> t;
@@ -94,6 +97,7 @@ CMT_INLINE vec<T, N> sortdesc(const vec<T, N>& x)
         o = rotateleft<1>(o);
         e = t;
     }
-    return interleavehalfs(concat(e, o));
+    return interleavehalves(concat(e, o));
 }
-}
+} // namespace CMT_ARCH_NAME
+} // namespace kfr

@@ -4,7 +4,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -28,11 +28,12 @@
 #include "dsp/biquad_design.hpp"
 #include "dsp/dcremove.hpp"
 #include "dsp/delay.hpp"
+#include "dsp/ebu.hpp"
 #include "dsp/fir.hpp"
 #include "dsp/fir_design.hpp"
 #include "dsp/fracdelay.hpp"
 #include "dsp/goertzel.hpp"
-#include "dsp/interpolation.hpp"
+#include "dsp/iir_design.hpp"
 #include "dsp/mixdown.hpp"
 #include "dsp/oscillators.hpp"
 #include "dsp/sample_rate_conversion.hpp"

@@ -4,7 +4,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -22,43 +22,19 @@
  */
 #pragma once
 
-#include "base/abs.hpp"
-#include "base/asin_acos.hpp"
-#include "base/atan.hpp"
+#include "math.hpp"
+
 #include "base/basic_expressions.hpp"
-#include "base/clamp.hpp"
-#include "base/comparison.hpp"
-#include "base/compiletime.hpp"
-#include "base/complex.hpp"
-#include "base/constants.hpp"
-#include "base/digitreverse.hpp"
+#include "base/conversion.hpp"
 #include "base/expression.hpp"
 #include "base/filter.hpp"
-#include "base/function.hpp"
-#include "base/gamma.hpp"
+#include "base/fraction.hpp"
+#include "base/function_expressions.hpp"
 #include "base/generators.hpp"
-#include "base/horizontal.hpp"
-#include "base/hyperbolic.hpp"
-#include "base/log_exp.hpp"
-#include "base/logical.hpp"
 #include "base/memory.hpp"
-#include "base/min_max.hpp"
-#include "base/modzerobessel.hpp"
-#include "base/operators.hpp"
 #include "base/pointer.hpp"
 #include "base/random.hpp"
-#include "base/read_write.hpp"
 #include "base/reduce.hpp"
-#include "base/round.hpp"
-#include "base/saturation.hpp"
-#include "base/select.hpp"
-#include "base/shuffle.hpp"
-#include "base/sin_cos.hpp"
 #include "base/small_buffer.hpp"
 #include "base/sort.hpp"
-#include "base/sqrt.hpp"
-#include "base/tan.hpp"
-#include "base/types.hpp"
 #include "base/univector.hpp"
-#include "base/vec.hpp"
-#include "version.hpp"

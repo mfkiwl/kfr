@@ -25,6 +25,8 @@ int main()
     // initialize fft
     const dft_plan<fbase> dft(size);
 
+    dft.dump();
+
     // allocate work buffer for fft (if needed)
     univector<u8> temp(dft.temp_size);
 

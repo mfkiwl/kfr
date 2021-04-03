@@ -1,4 +1,4 @@
-/** @addtogroup dsp
+/** @addtogroup window
  *  @{
  */
 /*
@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -25,12 +25,12 @@
  */
 #pragma once
 
-#include "../base/log_exp.hpp"
-#include "../base/modzerobessel.hpp"
 #include "../base/pointer.hpp"
-#include "../base/sin_cos.hpp"
-#include "../base/sqrt.hpp"
-#include "../base/vec.hpp"
+#include "../math/log_exp.hpp"
+#include "../math/modzerobessel.hpp"
+#include "../math/sin_cos.hpp"
+#include "../math/sqrt.hpp"
+#include "../simd/vec.hpp"
 
 namespace kfr
 {
@@ -64,6 +64,9 @@ enum class window_symmetry
     periodic,
     symmetric
 };
+
+inline namespace CMT_ARCH_NAME
+{
 
 namespace internal
 {
@@ -125,11 +128,12 @@ struct expression_rectangular : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t, size_t index, vec_t<T, N>) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_rectangular& self, cinput_t, size_t index,
+                                                vec_shape<T, N>)
     {
-        using TI = utype<T>;
-        const vec<TI, N> i = enumerate(vec<TI, N>()) + cast<TI>(index);
-        return select(i < cast<TI>(m_size), T(1), T(0));
+        using TI           = utype<T>;
+        const vec<TI, N> i = enumerate(vec_shape<TI, N>()) + static_cast<TI>(index);
+        return select(i < static_cast<TI>(self.m_size), T(1), T(0));
     }
     size_t size() const { return m_size; }
 
@@ -147,9 +151,10 @@ struct expression_triangular : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_triangular& self, cinput_t cinput,
+                                                size_t index, vec_shape<T, N> y)
     {
-        return 1 - abs(linspace(cinput, index, y));
+        return 1 - abs(get_elements(self.linspace, cinput, index, y));
     }
     size_t size() const { return m_size; }
 
@@ -168,9 +173,10 @@ struct expression_bartlett : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_bartlett& self, cinput_t cinput,
+                                                size_t index, vec_shape<T, N> y)
     {
-        return 1 - abs(linspace(cinput, index, y));
+        return 1 - abs(get_elements(self.linspace, cinput, index, y));
     }
     size_t size() const { return m_size; }
 
@@ -189,9 +195,10 @@ struct expression_cosine : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_cosine& self, cinput_t cinput, size_t index,
+                                                vec_shape<T, N> y)
     {
-        return sin(c_pi<T> * linspace(cinput, index, y));
+        return sin(c_pi<T> * get_elements(self.linspace, cinput, index, y));
     }
     size_t size() const { return m_size; }
 
@@ -210,9 +217,10 @@ struct expression_hann : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_hann& self, cinput_t cinput, size_t index,
+                                                vec_shape<T, N> y)
     {
-        return T(0.5) * (T(1) - cos(c_pi<T, 2> * linspace(cinput, index, y)));
+        return T(0.5) * (T(1) - cos(c_pi<T, 2> * get_elements(self.linspace, cinput, index, y)));
     }
     size_t size() const { return m_size; }
 
@@ -231,9 +239,10 @@ struct expression_bartlett_hann : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_bartlett_hann& self, cinput_t cinput,
+                                                size_t index, vec_shape<T, N> y)
     {
-        const vec<T, N> xx = linspace(cinput, index, y);
+        const vec<T, N> xx = get_elements(self.linspace, cinput, index, y);
         return T(0.62) - T(0.48) * abs(xx - T(0.5)) + T(0.38) * cos(c_pi<T, 2> * (xx - T(0.5)));
     }
     size_t size() const { return m_size; }
@@ -253,9 +262,11 @@ struct expression_hamming : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_hamming& self, cinput_t cinput, size_t index,
+                                                vec_shape<T, N> y)
     {
-        return alpha - (T(1.0) - alpha) * (cos(c_pi<T, 2> * linspace(cinput, index, y)));
+        return self.alpha -
+               (T(1.0) - self.alpha) * (cos(c_pi<T, 2> * get_elements(self.linspace, cinput, index, y)));
     }
     size_t size() const { return m_size; }
 
@@ -275,9 +286,10 @@ struct expression_bohman : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_bohman& self, cinput_t cinput, size_t index,
+                                                vec_shape<T, N> y)
     {
-        const vec<T, N> n = abs(linspace(cinput, index, y));
+        const vec<T, N> n = abs(get_elements(self.linspace, cinput, index, y));
         return (T(1) - n) * cos(c_pi<T> * n) + (T(1) / c_pi<T>)*sin(c_pi<T> * n);
     }
     size_t size() const { return m_size; }
@@ -297,10 +309,11 @@ struct expression_blackman : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_blackman& self, cinput_t cinput,
+                                                size_t index, vec_shape<T, N> y)
     {
-        const vec<T, N> n = linspace(cinput, index, y);
-        return a0 - a1 * cos(c_pi<T, 2> * n) + a2 * cos(c_pi<T, 4> * n);
+        const vec<T, N> n = get_elements(self.linspace, cinput, index, y);
+        return self.a0 - self.a1 * cos(c_pi<T, 2> * n) + self.a2 * cos(c_pi<T, 4> * n);
     }
     size_t size() const { return m_size; }
 
@@ -320,9 +333,10 @@ struct expression_blackman_harris : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_blackman_harris& self, cinput_t cinput,
+                                                size_t index, vec_shape<T, N> y)
     {
-        const vec<T, N> n = linspace(cinput, index, y) * c_pi<T, 2>;
+        const vec<T, N> n = get_elements(self.linspace, cinput, index, y) * c_pi<T, 2>;
         return T(0.35875) - T(0.48829) * cos(n) + T(0.14128) * cos(2 * n) - T(0.01168) * cos(3 * n);
     }
     size_t size() const { return m_size; }
@@ -343,9 +357,11 @@ struct expression_kaiser : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_kaiser& self, cinput_t cinput, size_t index,
+                                                vec_shape<T, N> y)
     {
-        return modzerobessel(beta * sqrt(1 - sqr(linspace(cinput, index, y)))) * m;
+        return modzerobessel(self.beta * sqrt(1 - sqr(get_elements(self.linspace, cinput, index, y)))) *
+               self.m;
     }
     size_t size() const { return m_size; }
 
@@ -366,14 +382,15 @@ struct expression_flattop : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_flattop& self, cinput_t cinput, size_t index,
+                                                vec_shape<T, N> y)
     {
-        const vec<T, N> n = linspace(cinput, index, y) * c_pi<T, 2>;
-        constexpr T a0 = 1;
-        constexpr T a1 = 1.93;
-        constexpr T a2 = 1.29;
-        constexpr T a3 = 0.388;
-        constexpr T a4 = 0.028;
+        const vec<T, N> n = get_elements(self.linspace, cinput, index, y) * c_pi<T, 2>;
+        constexpr T a0    = 0.21557895;
+        constexpr T a1    = 0.41663158;
+        constexpr T a2    = 0.277263158;
+        constexpr T a3    = 0.083578947;
+        constexpr T a4    = 0.006947368;
         return a0 - a1 * cos(n) + a2 * cos(2 * n) - a3 * cos(3 * n) + a4 * cos(4 * n);
     }
     size_t size() const { return m_size; }
@@ -393,12 +410,14 @@ struct expression_gaussian : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_gaussian& self, cinput_t cinput,
+                                                size_t index, vec_shape<T, N> y)
     {
-        return exp(T(-0.5) * sqr(alpha * linspace(cinput, index, y)));
+        return exp(T(-0.5) * sqr(self.alpha * get_elements(self.linspace, cinput, index, y)));
     }
 
     size_t size() const { return m_size; }
+
 private:
     window_linspace_m1_1_trunc<T> linspace;
     T alpha;
@@ -415,9 +434,10 @@ struct expression_lanczos : input_expression
     {
     }
     template <size_t N>
-    CMT_INLINE vec<T, N> operator()(cinput_t cinput, size_t index, vec_t<T, N> y) const
+    KFR_INTRINSIC friend vec<T, N> get_elements(const expression_lanczos& self, cinput_t cinput, size_t index,
+                                                vec_shape<T, N> y)
     {
-        return sinc(linspace(cinput, index, y));
+        return sinc(get_elements(self.linspace, cinput, index, y));
     }
     size_t size() const { return m_size; }
 
@@ -452,21 +472,22 @@ KFR_WINDOW_BY_TYPE(flattop)
 KFR_WINDOW_BY_TYPE(gaussian)
 KFR_WINDOW_BY_TYPE(lanczos)
 #undef KFR_WINDOW_BY_TYPE
-}
+} // namespace internal
 
 /**
  * @brief Returns template expression that generates Rrectangular window of length @c size
  */
-CMT_INLINE internal::expression_rectangular<fbase> window_rectangular(size_t size)
+template <typename T = fbase>
+KFR_FUNCTION internal::expression_rectangular<T> window_rectangular(size_t size, ctype_t<T> = ctype_t<T>())
 {
-    return internal::expression_rectangular<fbase>(size, fbase());
+    return internal::expression_rectangular<T>(size, T());
 }
 
 /**
  * @brief Returns template expression that generates Triangular window of length @c size
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_triangular<T> window_triangular(size_t size, ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_triangular<T> window_triangular(size_t size, ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_triangular<T>(size);
 }
@@ -475,7 +496,7 @@ CMT_INLINE internal::expression_triangular<T> window_triangular(size_t size, cty
  * @brief Returns template expression that generates Bartlett window of length @c size
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_bartlett<T> window_bartlett(size_t size, ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_bartlett<T> window_bartlett(size_t size, ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_bartlett<T>(size);
 }
@@ -484,7 +505,7 @@ CMT_INLINE internal::expression_bartlett<T> window_bartlett(size_t size, ctype_t
  * @brief Returns template expression that generates Cosine window of length @c size
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_cosine<T> window_cosine(size_t size, ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_cosine<T> window_cosine(size_t size, ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_cosine<T>(size);
 }
@@ -493,7 +514,7 @@ CMT_INLINE internal::expression_cosine<T> window_cosine(size_t size, ctype_t<T> 
  * @brief Returns template expression that generates Hann window of length @c size
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_hann<T> window_hann(size_t size, ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_hann<T> window_hann(size_t size, ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_hann<T>(size);
 }
@@ -502,7 +523,8 @@ CMT_INLINE internal::expression_hann<T> window_hann(size_t size, ctype_t<T> = ct
  * @brief Returns template expression that generates Bartlett-Hann window of length @c size
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_bartlett_hann<T> window_bartlett_hann(size_t size, ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_bartlett_hann<T> window_bartlett_hann(size_t size,
+                                                                        ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_bartlett_hann<T>(size);
 }
@@ -512,8 +534,8 @@ CMT_INLINE internal::expression_bartlett_hann<T> window_bartlett_hann(size_t siz
  * alpha
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_hamming<T> window_hamming(size_t size, identity<T> alpha = 0.54,
-                                                          ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_hamming<T> window_hamming(size_t size, identity<T> alpha = 0.54,
+                                                            ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_hamming<T>(size, alpha);
 }
@@ -522,7 +544,7 @@ CMT_INLINE internal::expression_hamming<T> window_hamming(size_t size, identity<
  * @brief Returns template expression that generates Bohman window of length @c size
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_bohman<T> window_bohman(size_t size, ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_bohman<T> window_bohman(size_t size, ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_bohman<T>(size);
 }
@@ -532,7 +554,7 @@ CMT_INLINE internal::expression_bohman<T> window_bohman(size_t size, ctype_t<T> 
  * alpha
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_blackman<T> window_blackman(
+KFR_FUNCTION internal::expression_blackman<T> window_blackman(
     size_t size, identity<T> alpha = 0.16, window_symmetry symmetry = window_symmetry::symmetric,
     ctype_t<T> = ctype_t<T>())
 {
@@ -543,7 +565,7 @@ CMT_INLINE internal::expression_blackman<T> window_blackman(
  * @brief Returns template expression that generates Blackman-Harris window of length @c size
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_blackman_harris<T> window_blackman_harris(
+KFR_FUNCTION internal::expression_blackman_harris<T> window_blackman_harris(
     size_t size, window_symmetry symmetry = window_symmetry::symmetric, ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_blackman_harris<T>(size, T(), symmetry);
@@ -554,8 +576,8 @@ CMT_INLINE internal::expression_blackman_harris<T> window_blackman_harris(
  * beta
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_kaiser<T> window_kaiser(size_t size, identity<T> beta = T(0.5),
-                                                        ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_kaiser<T> window_kaiser(size_t size, identity<T> beta = T(0.5),
+                                                          ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_kaiser<T>(size, beta);
 }
@@ -564,7 +586,7 @@ CMT_INLINE internal::expression_kaiser<T> window_kaiser(size_t size, identity<T>
  * @brief Returns template expression that generates Flat top window of length @c size
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_flattop<T> window_flattop(size_t size, ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_flattop<T> window_flattop(size_t size, ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_flattop<T>(size);
 }
@@ -574,8 +596,8 @@ CMT_INLINE internal::expression_flattop<T> window_flattop(size_t size, ctype_t<T
  * alpha
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_gaussian<T> window_gaussian(size_t size, identity<T> alpha = 2.5,
-                                                            ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_gaussian<T> window_gaussian(size_t size, identity<T> alpha = 2.5,
+                                                              ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_gaussian<T>(size, alpha);
 }
@@ -584,7 +606,7 @@ CMT_INLINE internal::expression_gaussian<T> window_gaussian(size_t size, identit
  * @brief Returns template expression that generates Lanczos window of length @c size
  */
 template <typename T = fbase>
-CMT_INLINE internal::expression_lanczos<T> window_lanczos(size_t size, ctype_t<T> = ctype_t<T>())
+KFR_FUNCTION internal::expression_lanczos<T> window_lanczos(size_t size, ctype_t<T> = ctype_t<T>())
 {
     return internal::expression_lanczos<T>(size);
 }
@@ -609,11 +631,12 @@ CMT_NOINLINE expression_pointer<T> window(size_t size, window_type type, identit
                 window_type::bohman, window_type::blackman, window_type::blackman_harris, window_type::kaiser,
                 window_type::flattop, window_type::gaussian, window_type::lanczos>(),
         type,
-        [=](auto win) {
+        [size, win_param, symmetry](auto win) {
             constexpr window_type window = val_of(decltype(win)());
-            return to_pointer<T>(
+            return to_pointer(
                 typename internal::window_by_type<window>::template type<T>(size, win_param, symmetry));
         },
-        fn::returns<expression_pointer<T>>());
+        fn_generic::returns<expression_pointer<T>>());
 }
-}
+} // namespace CMT_ARCH_NAME
+} // namespace kfr

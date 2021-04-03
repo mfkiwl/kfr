@@ -1,4 +1,4 @@
-/** @addtogroup dft
+/** @addtogroup convolution
  *  @{
  */
 /*
@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -25,11 +25,12 @@
  */
 #pragma once
 
-#include "../base/complex.hpp"
-#include "../base/constants.hpp"
+#include "../base/filter.hpp"
 #include "../base/memory.hpp"
-#include "../base/read_write.hpp"
-#include "../base/vec.hpp"
+#include "../simd/complex.hpp"
+#include "../simd/constants.hpp"
+#include "../simd/read_write.hpp"
+#include "../simd/vec.hpp"
 
 #include "cache.hpp"
 #include "fft.hpp"
@@ -41,89 +42,71 @@ CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wshadow")
 
 namespace kfr
 {
-
-template <typename T, size_t Tag1, size_t Tag2>
-CMT_FUNC univector<T> convolve(const univector<T, Tag1>& src1, const univector<T, Tag2>& src2)
+inline namespace CMT_ARCH_NAME
 {
-    const size_t size                = next_poweroftwo(src1.size() + src2.size() - 1);
-    univector<complex<T>> src1padded = src1;
-    univector<complex<T>> src2padded = src2;
-    src1padded.resize(size, 0);
-    src2padded.resize(size, 0);
 
-    dft_plan_ptr<T> dft = dft_cache::instance().get(ctype_t<T>(), size);
-    univector<u8> temp(dft->temp_size);
-    dft->execute(src1padded, src1padded, temp);
-    dft->execute(src2padded, src2padded, temp);
-    src1padded = src1padded * src2padded;
-    dft->execute(src1padded, src1padded, temp, true);
-    const T invsize = reciprocal<T>(size);
-    return truncate(real(src1padded), src1.size() + src2.size() - 1) * invsize;
+namespace intrinsics
+{
+template <typename T>
+univector<T> convolve(const univector_ref<const T>& src1, const univector_ref<const T>& src2);
+template <typename T>
+univector<T> correlate(const univector_ref<const T>& src1, const univector_ref<const T>& src2);
+template <typename T>
+univector<T> autocorrelate(const univector_ref<const T>& src1);
+} // namespace intrinsics
+
+/// @brief Convolution
+template <typename T, univector_tag Tag1, univector_tag Tag2>
+univector<T> convolve(const univector<T, Tag1>& src1, const univector<T, Tag2>& src2)
+{
+    return intrinsics::convolve(src1.slice(), src2.slice());
 }
 
-template <typename T, size_t Tag1, size_t Tag2>
-CMT_FUNC univector<T> correlate(const univector<T, Tag1>& src1, const univector<T, Tag2>& src2)
+/// @brief Correlation
+template <typename T, univector_tag Tag1, univector_tag Tag2>
+univector<T> correlate(const univector<T, Tag1>& src1, const univector<T, Tag2>& src2)
 {
-    const size_t size                = next_poweroftwo(src1.size() + src2.size() - 1);
-    univector<complex<T>> src1padded = src1;
-    univector<complex<T>> src2padded = reverse(src2);
-    src1padded.resize(size, 0);
-    src2padded.resize(size, 0);
-    dft_plan_ptr<T> dft = dft_cache::instance().get(ctype_t<T>(), size);
-    univector<u8> temp(dft->temp_size);
-    dft->execute(src1padded, src1padded, temp);
-    dft->execute(src2padded, src2padded, temp);
-    src1padded = src1padded * src2padded;
-    dft->execute(src1padded, src1padded, temp, true);
-    const T invsize = reciprocal<T>(size);
-    return truncate(real(src1padded), src1.size() + src2.size() - 1) * invsize;
+    return intrinsics::correlate(src1.slice(), src2.slice());
 }
 
-template <typename T, size_t Tag1>
-CMT_FUNC univector<T> autocorrelate(const univector<T, Tag1>& src)
+/// @brief Auto-correlation
+template <typename T, univector_tag Tag1>
+univector<T> autocorrelate(const univector<T, Tag1>& src)
 {
-    univector<T> result = correlate(src, src);
-    result              = result.slice(result.size() / 2);
-    return result;
+    return intrinsics::autocorrelate(src.slice());
 }
 
+namespace internal
+{
+/// @brief Utility class to abstract real/complex differences
+template <typename T>
+struct dft_conv_plan: public dft_plan_real<T>
+{
+    dft_conv_plan(size_t size) : dft_plan_real<T>(size, dft_pack_format::Perm) {}
+    
+    size_t csize() const { return this->size / 2; }
+};
+
+template <typename T>
+struct dft_conv_plan<complex<T>>: public dft_plan<T>
+{
+    dft_conv_plan(size_t size) : dft_plan<T>(size) {}
+    
+    size_t csize() const { return this->size; }
+};
+} // namespace internal
+
+/// @brief Convolution using Filter API
 template <typename T>
 class convolve_filter : public filter<T>
 {
 public:
-    explicit convolve_filter(size_t size, size_t block_size = 1024)
-        : size(size), block_size(block_size), fft(2 * next_poweroftwo(block_size)), temp(fft.temp_size),
-          segments((size + block_size - 1) / block_size)
-    {
-    }
-    explicit convolve_filter(const univector<T>& data, size_t block_size = 1024)
-        : size(data.size()), block_size(next_poweroftwo(block_size)), fft(2 * next_poweroftwo(block_size)),
-          temp(fft.temp_size),
-          segments((data.size() + next_poweroftwo(block_size) - 1) / next_poweroftwo(block_size)),
-          ir_segments((data.size() + next_poweroftwo(block_size) - 1) / next_poweroftwo(block_size)),
-          input_position(0), position(0)
-    {
-        set_data(data);
-    }
-    void set_data(const univector<T>& data)
-    {
-        univector<T> input(fft.size);
-        const T ifftsize = reciprocal(T(fft.size));
-        for (size_t i = 0; i < ir_segments.size(); i++)
-        {
-            segments[i].resize(block_size);
-            ir_segments[i].resize(block_size, 0);
-            input = padded(data.slice(i * block_size, block_size));
-
-            fft.execute(ir_segments[i], input, temp, dft_pack_format::Perm);
-            process(ir_segments[i], ir_segments[i] * ifftsize);
-        }
-        saved_input.resize(block_size, 0);
-        scratch.resize(block_size * 2);
-        premul.resize(block_size, 0);
-        cscratch.resize(block_size);
-        overlap.resize(block_size, 0);
-    }
+    explicit convolve_filter(size_t size, size_t block_size = 1024);
+    explicit convolve_filter(const univector_ref<const T>& data, size_t block_size = 1024);
+    void set_data(const univector_ref<const T>& data);
+    void reset() final;
+    /// Apply filter to multiples of returned block size for optimal processing efficiency.
+    size_t input_block_size() const { return block_size; }
 
 protected:
     void process_expression(T* dest, const expression_pointer<T>& src, size_t size) final
@@ -131,63 +114,50 @@ protected:
         univector<T> input = truncate(src, size);
         process_buffer(dest, input.data(), input.size());
     }
-    void process_buffer(T* output, const T* input, size_t size) final
-    {
-        size_t processed = 0;
-        while (processed < size)
-        {
-            const size_t processing = std::min(size - processed, block_size - input_position);
-            internal::builtin_memcpy(saved_input.data() + input_position, input + processed,
-                                     processing * sizeof(T));
+    void process_buffer(T* output, const T* input, size_t size) final;
 
-            process(scratch, padded(saved_input));
-            fft.execute(segments[position], scratch, temp, dft_pack_format::Perm);
+    using ST                       = subtype<T>;
+    static constexpr auto real_fft = !std::is_same<T, complex<ST>>::value;
+    using plan_t = internal::dft_conv_plan<T>;
 
-            if (input_position == 0)
-            {
-                process(premul, zeros());
-                for (size_t i = 1; i < segments.size(); i++)
-                {
-                    const size_t n = (position + i) % segments.size();
-                    fft_multiply_accumulate(premul, ir_segments[i], segments[n], dft_pack_format::Perm);
-                }
-            }
-            fft_multiply_accumulate(cscratch, premul, ir_segments[0], segments[position],
-                                    dft_pack_format::Perm);
-
-            fft.execute(scratch, cscratch, temp, dft_pack_format::Perm);
-
-            process(make_univector(output + processed, processing),
-                    scratch.slice(input_position) + overlap.slice(input_position));
-
-            input_position += processing;
-            if (input_position == block_size)
-            {
-                input_position = 0;
-                process(saved_input, zeros());
-
-                internal::builtin_memcpy(overlap.data(), scratch.data() + block_size, block_size * sizeof(T));
-
-                position = position > 0 ? position - 1 : segments.size() - 1;
-            }
-
-            processed += processing;
-        }
-    }
-
-    const dft_plan_real<T> fft;
-    univector<u8> temp;
-    std::vector<univector<complex<T>>> segments;
-    std::vector<univector<complex<T>>> ir_segments;
-    const size_t size;
+    // Length of filter data.
+    size_t data_size;
+    // Size of block to process.
     const size_t block_size;
-    size_t input_position;
-    univector<T> saved_input;
-    univector<complex<T>> premul;
-    univector<complex<T>> cscratch;
-    univector<T> scratch;
-    univector<T> overlap;
+    // FFT plan for circular convolution.
+    const plan_t fft;
+    // Temp storage for FFT.
+    univector<u8> temp;
+    // History of input segments after fwd DFT.  History is circular relative to position below.
+    std::vector<univector<complex<ST>>> segments;
+    // Index into segments of current block.
     size_t position;
+    // Blocks of filter/data after fwd DFT.
+    std::vector<univector<complex<ST>>> ir_segments;
+    // Saved input for current block.
+    univector<T> saved_input;
+    // Index into saved_input for next input to begin.
+    size_t input_position;
+    // Pre-multiplied products of input history and delayed filter blocks.
+    univector<complex<ST>> premul;
+    // Scratch buffer for product of filter and input for processing by reverse DFT.
+    univector<complex<ST>> cscratch;
+    // Scratch buffers for input and output of fwd and rev DFTs.
+    univector<T> scratch1, scratch2;
+    // Overlap saved from previous block to add into current block.
+    univector<T> overlap;
 };
+} // namespace CMT_ARCH_NAME
+
+CMT_MULTI_PROTO(template <typename T>
+                filter<T>* make_convolve_filter(const univector_ref<const T>& taps, size_t block_size);)
+
+#ifdef CMT_MULTI
+template <typename T>
+KFR_FUNCTION filter<T>* make_convolve_filter(cpu_t cpu, const univector_ref<const T>& taps, size_t block_size)
+{
+    CMT_MULTI_PROTO_GATE(make_convolve_filter<T>(taps, block_size))
 }
+#endif
+} // namespace kfr
 CMT_PRAGMA_GNU(GCC diagnostic pop)

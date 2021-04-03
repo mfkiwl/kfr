@@ -1,4 +1,4 @@
-/** @addtogroup dsp
+/** @addtogroup dsp_extra
  *  @{
  */
 /*
@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -25,12 +25,15 @@
  */
 #pragma once
 
-#include "../base/clamp.hpp"
-#include "../base/hyperbolic.hpp"
-#include "../base/operators.hpp"
+#include "../math/clamp.hpp"
+#include "../math/hyperbolic.hpp"
+#include "../simd/operators.hpp"
 
 namespace kfr
 {
+inline namespace CMT_ARCH_NAME
+{
+
 template <typename E1>
 inline auto waveshaper_hardclip(E1&& input, double clip_level)
 {
@@ -43,30 +46,30 @@ inline auto waveshaper_tanh(E1&& input, double saturation)
     return tanh(saturation * input) * (coth(saturation));
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>::value)>
-CMT_FUNC flt_type<T1> saturate_I(const T1& x)
+template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+KFR_FUNCTION flt_type<T1> saturate_I(const T1& x)
 {
     const flt_type<T1> xx = -1 / (abs(static_cast<flt_type<T1>>(x)) + 1) + 1;
     return mulsign(xx, static_cast<flt_type<T1>>(x));
 }
 KFR_FN(saturate_I)
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>::value)>
-CMT_FUNC flt_type<T1> saturate_II(const T1& x)
+template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+KFR_FUNCTION flt_type<T1> saturate_II(const T1& x)
 {
     const flt_type<T1> xx = sqr(abs(static_cast<flt_type<T1>>(x)) + 1);
     return mulsign((xx - 1) / (xx + 1), static_cast<flt_type<T1>>(x));
 }
 KFR_FN(saturate_II)
 
-template <typename E1, KFR_ENABLE_IF(is_input_expression<E1>::value)>
-CMT_FUNC internal::expression_function<fn::saturate_II, E1> saturate_I(E1&& x)
+template <typename E1, KFR_ENABLE_IF(is_input_expression<E1>)>
+KFR_FUNCTION internal::expression_function<fn::saturate_II, E1> saturate_I(E1&& x)
 {
     return { fn::saturate_I(), std::forward<E1>(x) };
 }
 
-template <typename E1, KFR_ENABLE_IF(is_input_expression<E1>::value)>
-CMT_FUNC internal::expression_function<fn::saturate_II, E1> saturate_II(E1&& x)
+template <typename E1, KFR_ENABLE_IF(is_input_expression<E1>)>
+KFR_FUNCTION internal::expression_function<fn::saturate_II, E1> saturate_II(E1&& x)
 {
     return { fn::saturate_II(), std::forward<E1>(x) };
 }
@@ -88,4 +91,5 @@ inline auto waveshaper_poly(E1&& input, fbase c1, fbase c3, Cs... cs)
 {
     return horner_odd(input, c1, c3, static_cast<fbase>(cs)...);
 }
-}
+} // namespace CMT_ARCH_NAME
+} // namespace kfr

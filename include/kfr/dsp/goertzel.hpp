@@ -1,4 +1,4 @@
-/** @addtogroup dsp
+/** @addtogroup dsp_extra
  *  @{
  */
 /*
@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -26,16 +26,19 @@
 #pragma once
 
 #include "../base/basic_expressions.hpp"
-#include "../base/complex.hpp"
-#include "../base/sin_cos.hpp"
-#include "../base/vec.hpp"
+#include "../math/sin_cos.hpp"
+#include "../simd/complex.hpp"
+#include "../simd/vec.hpp"
 
 namespace kfr
 {
+inline namespace CMT_ARCH_NAME
+{
+
 namespace internal
 {
 
-template <typename T, KFR_ARCH_DEP>
+template <typename T>
 struct expression_goertzel : output_expression
 {
     expression_goertzel(complex<T>& result, T omega)
@@ -48,7 +51,7 @@ struct expression_goertzel : output_expression
         result.imag(q2 * sin(omega));
     }
     template <typename U, size_t N>
-    CMT_INLINE void operator()(coutput_t, size_t index, const vec<U, N>& x)
+    KFR_MEM_INTRINSIC void operator()(coutput_t, size_t, const vec<U, N>& x)
     {
         vec<T, N> in = x;
         CMT_LOOP_UNROLL
@@ -85,7 +88,7 @@ struct expression_parallel_goertzel : output_expression
         }
     }
     template <typename U, size_t N>
-    CMT_INLINE void operator()(coutput_t, size_t index, const vec<U, N>& x)
+    KFR_MEM_INTRINSIC void operator()(coutput_t, size_t, const vec<U, N>& x)
     {
         const vec<T, N> in = x;
         CMT_LOOP_UNROLL
@@ -96,25 +99,26 @@ struct expression_parallel_goertzel : output_expression
             q1 = q0;
         }
     }
-    complex<T> result[];
+    complex<T>* result;
     const vec<T, width> omega;
     const vec<T, width> coeff;
     vec<T, width> q0;
     vec<T, width> q1;
     vec<T, width> q2;
 };
-};
+} // namespace internal
 
 template <typename T>
-KFR_SINTRIN internal::expression_goertzel<T> goertzel(complex<T>& result, identity<T> omega)
+KFR_INTRINSIC internal::expression_goertzel<T> goertzel(complex<T>& result, identity<T> omega)
 {
     return internal::expression_goertzel<T>(result, omega);
 }
 
 template <typename T, size_t width>
-KFR_SINTRIN internal::expression_parallel_goertzel<T, width> goertzel(complex<T> (&result)[width],
-                                                                      const T (&omega)[width])
+KFR_INTRINSIC internal::expression_parallel_goertzel<T, width> goertzel(complex<T> (&result)[width],
+                                                                        const T (&omega)[width])
 {
     return internal::expression_parallel_goertzel<T, width>(result, read<width>(omega));
 }
-}
+} // namespace CMT_ARCH_NAME
+} // namespace kfr

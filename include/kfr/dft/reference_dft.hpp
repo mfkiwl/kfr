@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -25,24 +25,26 @@
  */
 #pragma once
 
-#include "../base/complex.hpp"
-#include "../base/constants.hpp"
 #include "../base/memory.hpp"
-#include "../base/read_write.hpp"
 #include "../base/small_buffer.hpp"
-#include "../base/vec.hpp"
+#include "../base/univector.hpp"
+#include "../simd/complex.hpp"
+#include "../simd/constants.hpp"
+#include "../simd/read_write.hpp"
+#include "../simd/vec.hpp"
 #include <cmath>
+#include <vector>
 
 namespace kfr
 {
 
-template <typename Tnumber = long double>
+template <typename Tnumber = double>
 void reference_fft_pass(Tnumber pi2, size_t N, size_t offset, size_t delta, int flag, Tnumber (*x)[2],
                         Tnumber (*X)[2], Tnumber (*XX)[2])
 {
     const size_t N2 = N / 2;
-    using std::sin;
     using std::cos;
+    using std::sin;
 
     if (N != 2)
     {
@@ -77,7 +79,8 @@ void reference_fft_pass(Tnumber pi2, size_t N, size_t offset, size_t delta, int 
     }
 }
 
-template <typename Tnumber = long double, typename T>
+/// @brief Performs Complex FFT using reference implementation (slow, used for testing)
+template <typename Tnumber = double, typename T>
 void reference_fft(complex<T>* out, const complex<T>* in, size_t size, bool inversion = false)
 {
     using Tcmplx = Tnumber(*)[2];
@@ -93,7 +96,8 @@ void reference_fft(complex<T>* out, const complex<T>* in, size_t size, bool inve
     std::copy(dataout.begin(), dataout.end(), out);
 }
 
-template <typename Tnumber = long double, typename T>
+/// @brief Performs Direct Real FFT using reference implementation (slow, used for testing)
+template <typename Tnumber = double, typename T>
 void reference_fft(complex<T>* out, const T* in, size_t size)
 {
     constexpr bool inversion = false;
@@ -110,7 +114,8 @@ void reference_fft(complex<T>* out, const T* in, size_t size)
     std::copy(dataout.begin(), dataout.end(), out);
 }
 
-template <typename Tnumber = long double, typename T>
+/// @brief Performs Inverse Real FFT using reference implementation (slow, used for testing)
+template <typename Tnumber = double, typename T>
 void reference_fft(T* out, const complex<T>* in, size_t size)
 {
     constexpr bool inversion = true;
@@ -125,14 +130,15 @@ void reference_fft(T* out, const complex<T>* in, size_t size)
     reference_fft_pass<Tnumber>(pi2, size, 0, 1, inversion ? -1 : +1, Tcmplx(datain.data()),
                                 Tcmplx(dataout.data()), Tcmplx(temp.data()));
     for (size_t i = 0; i < size; i++)
-        out[i]    = dataout[i].real();
+        out[i] = dataout[i].real();
 }
 
-template <typename Tnumber = long double, typename T>
+/// @brief Performs Complex DFT using reference implementation (slow, used for testing)
+template <typename Tnumber = double, typename T>
 void reference_dft(complex<T>* out, const complex<T>* in, size_t size, bool inversion = false)
 {
-    using std::sin;
     using std::cos;
+    using std::sin;
     if (is_poweroftwo(size))
     {
         return reference_fft<Tnumber>(out, in, size, inversion);
@@ -177,6 +183,15 @@ void reference_dft(complex<T>* out, const complex<T>* in, size_t size, bool inve
     }
 }
 
+/// @brief Performs DFT using reference implementation (slow, used for testing)
+template <typename Tnumber = double, typename T>
+inline univector<complex<T>> reference_dft(const univector<complex<T>>& in, bool inversion = false)
+{
+    univector<complex<T>> out(in.size());
+    reference_dft(&out[0], &in[0], in.size(), inversion);
+    return out;
+}
+
 template <typename T>
 struct reference_dft_plan
 {
@@ -195,4 +210,4 @@ struct reference_dft_plan
     static constexpr size_t temp_size = 0;
     const size_t size;
 };
-}
+} // namespace kfr

@@ -1,3 +1,6 @@
+# Backup
+*.bak
+
 # Compiled Object files
 *.slo
 *.lo
@@ -43,6 +46,8 @@ build32/
 build64/
 cmake-build-debug/
 cmake-build-release/
+build-*/
+build_*/
 
 # test directory
 svg/
@@ -69,12 +74,31 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
+venv/
 
-# Sphinx documentation
-docs/
+# Documentation
+docs/update.sh
 
 # CLion
 .idea/
 
+# VSCode
+.vscode/
+.vs/
+*.code-workspace
+
+# CLion
+cmake-*
+
+
+!cmake-format*
 
 *.TMP
+temp_audio_file.wav
+.DS_Store
+
+# Coverage
+*.profraw
+*.profdata
+*.lcov
+lcov.info

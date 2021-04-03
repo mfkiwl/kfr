@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -25,11 +25,12 @@
  */
 #pragma once
 
-#include "base/types.hpp"
+#include "runtime/cpuid_auto.hpp"
 
 namespace kfr
 {
 
-/// Returns string representation of the KFR version (including target architecture)
+/// @brief Returns string representation of the KFR version (including target architecture)
 inline static const char* library_version() { return KFR_VERSION_FULL; }
-}
+inline static const char* cpu_runtime() { return cpu_name(get_cpu()); }
+} // namespace kfr

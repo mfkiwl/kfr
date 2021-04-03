@@ -1,4 +1,4 @@
-/** @addtogroup dsp
+/** @addtogroup biquad
  *  @{
  */
 /*
@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -30,6 +30,8 @@
 
 namespace kfr
 {
+inline namespace CMT_ARCH_NAME
+{
 
 /**
  * @brief Calculates coefficients for the all-pass biquad filter
@@ -38,7 +40,7 @@ namespace kfr
  * @return Biquad filter coefficients
  */
 template <typename T = fbase>
-biquad_params<T> biquad_allpass(identity<T> frequency, identity<T> Q)
+KFR_FUNCTION biquad_params<T> biquad_allpass(identity<T> frequency, identity<T> Q)
 {
     const T alpha = std::sin(frequency) / 2.0 * Q;
     const T cs    = std::cos(frequency);
@@ -59,7 +61,7 @@ biquad_params<T> biquad_allpass(identity<T> frequency, identity<T> Q)
  * @return Biquad filter coefficients
  */
 template <typename T = fbase>
-biquad_params<T> biquad_lowpass(identity<T> frequency, identity<T> Q)
+KFR_FUNCTION biquad_params<T> biquad_lowpass(identity<T> frequency, identity<T> Q)
 {
     const T K    = std::tan(c_pi<T, 1> * frequency);
     const T K2   = K * K;
@@ -79,7 +81,7 @@ biquad_params<T> biquad_lowpass(identity<T> frequency, identity<T> Q)
  * @return Biquad filter coefficients
  */
 template <typename T = fbase>
-biquad_params<T> biquad_highpass(identity<T> frequency, identity<T> Q)
+KFR_FUNCTION biquad_params<T> biquad_highpass(identity<T> frequency, identity<T> Q)
 {
     const T K    = std::tan(c_pi<T, 1> * frequency);
     const T K2   = K * K;
@@ -99,7 +101,7 @@ biquad_params<T> biquad_highpass(identity<T> frequency, identity<T> Q)
  * @return Biquad filter coefficients
  */
 template <typename T = fbase>
-biquad_params<T> biquad_bandpass(identity<T> frequency, identity<T> Q)
+KFR_FUNCTION biquad_params<T> biquad_bandpass(identity<T> frequency, identity<T> Q)
 {
     const T K    = std::tan(c_pi<T, 1> * frequency);
     const T K2   = K * K;
@@ -119,7 +121,7 @@ biquad_params<T> biquad_bandpass(identity<T> frequency, identity<T> Q)
  * @return Biquad filter coefficients
  */
 template <typename T = fbase>
-biquad_params<T> biquad_notch(identity<T> frequency, identity<T> Q)
+KFR_FUNCTION biquad_params<T> biquad_notch(identity<T> frequency, identity<T> Q)
 {
     const T K    = std::tan(c_pi<T, 1> * frequency);
     const T K2   = K * K;
@@ -140,7 +142,7 @@ biquad_params<T> biquad_notch(identity<T> frequency, identity<T> Q)
  * @return Biquad filter coefficients
  */
 template <typename T = fbase>
-biquad_params<T> biquad_peak(identity<T> frequency, identity<T> Q, identity<T> gain)
+KFR_FUNCTION biquad_params<T> biquad_peak(identity<T> frequency, identity<T> Q, identity<T> gain)
 {
     biquad_params<T> result;
     const T K  = std::tan(c_pi<T, 1> * frequency);
@@ -177,7 +179,7 @@ biquad_params<T> biquad_peak(identity<T> frequency, identity<T> Q, identity<T> g
  * @return Biquad filter coefficients
  */
 template <typename T = fbase>
-biquad_params<T> biquad_lowshelf(identity<T> frequency, identity<T> gain)
+KFR_FUNCTION biquad_params<T> biquad_lowshelf(identity<T> frequency, identity<T> gain)
 {
     biquad_params<T> result;
     const T K  = std::tan(c_pi<T, 1> * frequency);
@@ -214,7 +216,7 @@ biquad_params<T> biquad_lowshelf(identity<T> frequency, identity<T> gain)
  * @return Biquad filter coefficients
  */
 template <typename T = fbase>
-biquad_params<T> biquad_highshelf(identity<T> frequency, identity<T> gain)
+KFR_FUNCTION biquad_params<T> biquad_highshelf(identity<T> frequency, identity<T> gain)
 {
     biquad_params<T> result;
     const T K  = std::tan(c_pi<T, 1> * frequency);
@@ -243,4 +245,5 @@ biquad_params<T> biquad_highshelf(identity<T> frequency, identity<T> gain)
     }
     return result;
 }
-}
+} // namespace CMT_ARCH_NAME
+} // namespace kfr

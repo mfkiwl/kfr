@@ -1,10 +1,9 @@
-﻿#pragma once
+﻿/** @addtogroup testo
+ *  @{
+ */
+#pragma once
 
-#include "../cometa/tuple.hpp"
-
-#include "../cometa.hpp"
-#include "../cometa/range.hpp"
-#include "../cometa/string.hpp"
+#include "comparison.hpp"
 
 #include <algorithm>
 #include <ctime>
@@ -16,23 +15,17 @@
 #include <mpfr/mpfr.hpp>
 #include <mpfr/mpfr_tostring.hpp>
 #endif
-#include "../ext/console_colors.hpp"
+#include "console_colors.hpp"
+#include <cassert>
 #include <chrono>
 #include <cmath>
 
-#if !defined CLANG_DIAGNOSTIC_PRAGMA
-#if defined __clang__
-#define TESTO_STRING(str) #str
-#define CLANG_DIAGNOSTIC_PRAGMA(pragma) _Pragma(TESTO_STRING(clang diagnostic pragma))
-#else
-#define CLANG_DIAGNOSTIC_PRAGMA(pragma)
-#endif
-#endif
-
-CLANG_DIAGNOSTIC_PRAGMA(push)
-CLANG_DIAGNOSTIC_PRAGMA(ignored "-Wexit-time-destructors")
-CLANG_DIAGNOSTIC_PRAGMA(ignored "-Wpadded")
-CLANG_DIAGNOSTIC_PRAGMA(ignored "-Wshadow")
+CMT_PRAGMA_GNU(GCC diagnostic push)
+CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wpragmas")
+CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wexit-time-destructors")
+CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wpadded")
+CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wshadow")
+CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wparentheses")
 
 namespace testo
 {
@@ -71,10 +64,18 @@ inline std::string number_to_string(const mpfr::number& reference, int precision
 template <typename T>
 inline double ulp_distance(long double reference, T test)
 {
-    if (__builtin_isnan(test) && __builtin_isnan(reference))
+#if defined CMT_COMPILER_MSVC && !defined CMT_COMPILER_CLANG
+#define TESTO__ISNAN(x) std::isnan(x)
+#define TESTO__ISINF(x) std::isinf(x)
+#else
+#define TESTO__ISNAN(x) __builtin_isnan(x)
+#define TESTO__ISINF(x) __builtin_isinf(x)
+#endif
+
+    if (TESTO__ISNAN(test) && TESTO__ISNAN(reference))
         return 0.0;
-    if (__builtin_isinf(test) &&
-        (__builtin_isinf(reference) || std::fabs(reference) > std::numeric_limits<T>::max()))
+    if (TESTO__ISINF(test) &&
+        (TESTO__ISINF(reference) || std::fabs(reference) > std::numeric_limits<T>::max()))
     {
         if ((reference < 0 && test < 0) || (reference > 0 && test > 0))
             return 0.0;
@@ -85,214 +86,12 @@ inline double ulp_distance(long double reference, T test)
     T next             = std::nexttoward(test, std::numeric_limits<long double>::infinity());
     long double ulp    = test80 - static_cast<long double>(next);
     return std::abs(static_cast<double>((reference - test80) / ulp));
+#undef TESTO__ISNAN
+#undef TESTO__ISINF
 }
 #endif
 
 using namespace console_colors;
-
-template <typename Fn, typename L, typename R>
-struct comparison
-{
-    L left;
-    R right;
-    Fn cmp;
-
-    comparison(L&& left, R&& right) : left(std::forward<L>(left)), right(std::forward<R>(right)) {}
-
-    bool operator()() const { return cmp(left, right); }
-};
-
-template <typename Left, typename Right>
-struct static_assert_type_eq
-{
-    static_assert(std::is_same<Left, Right>::value, "std::is_same<Left, Right>::value");
-};
-
-template <typename T, T left, T right>
-struct static_assert_eq
-{
-    static_assert(left == right, "left == right");
-};
-
-template <typename L, typename R, typename = void>
-struct equality_comparer
-{
-    bool operator()(const L& l, const R& r) const { return l == r; }
-};
-
-CMT_PRAGMA_GNU(GCC diagnostic push)
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wfloat-equal")
-
-template <typename T>
-inline T& epsilon()
-{
-    static T value = std::numeric_limits<T>::epsilon();
-    return value;
-}
-
-template <>
-struct equality_comparer<float, float>
-{
-    bool operator()(const float& l, const float& r) const { return !(std::abs(l - r) > epsilon<float>()); }
-};
-template <>
-struct equality_comparer<double, double>
-{
-    bool operator()(const double& l, const double& r) const { return !(std::abs(l - r) > epsilon<double>()); }
-};
-template <>
-struct equality_comparer<long double, long double>
-{
-    bool operator()(const long double& l, const long double& r) const
-    {
-        return !(std::abs(l - r) > epsilon<long double>());
-    }
-};
-
-CMT_PRAGMA_GNU(GCC diagnostic pop)
-
-template <typename L, typename R>
-struct equality_comparer<L, R, void_t<enable_if<!compound_type_traits<L>::is_scalar>>>
-{
-    using Tsubtype = subtype<L>;
-    constexpr static static_assert_type_eq<subtype<L>, subtype<R>> assert{};
-
-    bool operator()(const L& l, const R& r) const
-    {
-        if (compound_type_traits<L>::width != compound_type_traits<R>::width)
-            return false;
-
-        compound_type_traits<L> itl;
-        compound_type_traits<R> itr;
-        for (size_t i = 0; i < compound_type_traits<L>::width; i++)
-        {
-            equality_comparer<Tsubtype, Tsubtype> cmp;
-            if (!cmp(itl.at(l, i), itr.at(r, i)))
-                return false;
-        }
-        return true;
-    }
-};
-
-struct cmp_eq
-{
-    static const char* op() { return "=="; }
-
-    template <typename L, typename R>
-    bool operator()(L&& left, R&& right) const
-    {
-        equality_comparer<decay<L>, decay<R>> eq;
-        return eq(left, right);
-    }
-};
-
-struct cmp_ne
-{
-    static const char* op() { return "!="; }
-
-    template <typename L, typename R>
-    bool operator()(L&& left, R&& right) const
-    {
-        return !cmp_eq()(left, right);
-    }
-};
-
-struct cmp_lt
-{
-    static const char* op() { return "<"; }
-
-    template <typename L, typename R>
-    bool operator()(L&& left, R&& right) const
-    {
-        return left < right;
-    }
-};
-
-struct cmp_gt
-{
-    static const char* op() { return ">"; }
-
-    template <typename L, typename R>
-    bool operator()(L&& left, R&& right) const
-    {
-        return left > right;
-    }
-};
-
-struct cmp_le
-{
-    static const char* op() { return "<="; }
-
-    template <typename L, typename R>
-    bool operator()(L&& left, R&& right) const
-    {
-        return left <= right;
-    }
-};
-
-struct cmp_ge
-{
-    static const char* op() { return ">="; }
-
-    template <typename L, typename R>
-    bool operator()(L&& left, R&& right) const
-    {
-        return left >= right;
-    }
-};
-
-template <typename L>
-struct half_comparison
-{
-    half_comparison(L&& left) : left(std::forward<L>(left)) {}
-
-    template <typename R>
-    comparison<cmp_eq, L, R> operator==(R&& right)
-    {
-        return comparison<cmp_eq, L, R>(std::forward<L>(left), std::forward<R>(right));
-    }
-
-    template <typename R>
-    comparison<cmp_ne, L, R> operator!=(R&& right)
-    {
-        return comparison<cmp_ne, L, R>(std::forward<L>(left), std::forward<R>(right));
-    }
-
-    template <typename R>
-    comparison<cmp_lt, L, R> operator<(R&& right)
-    {
-        return comparison<cmp_lt, L, R>(std::forward<L>(left), std::forward<R>(right));
-    }
-
-    template <typename R>
-    comparison<cmp_gt, L, R> operator>(R&& right)
-    {
-        return comparison<cmp_gt, L, R>(std::forward<L>(left), std::forward<R>(right));
-    }
-
-    template <typename R>
-    comparison<cmp_le, L, R> operator<=(R&& right)
-    {
-        return comparison<cmp_le, L, R>(std::forward<L>(left), std::forward<R>(right));
-    }
-
-    template <typename R>
-    comparison<cmp_ge, L, R> operator>=(R&& right)
-    {
-        return comparison<cmp_ge, L, R>(std::forward<L>(left), std::forward<R>(right));
-    }
-
-    L left;
-};
-
-struct make_comparison
-{
-    template <typename L>
-    half_comparison<L> operator<=(L&& left)
-    {
-        return half_comparison<L>(std::forward<L>(left));
-    }
-};
 
 inline std::vector<std::string> split(const std::string& text, char delimeter)
 {
@@ -316,6 +115,15 @@ inline test_case*& active_test()
     static test_case* instance = nullptr;
     return instance;
 }
+
+struct scope
+{
+    std::string text;
+    test_case* current_test;
+    scope* parent;
+    scope(std::string text);
+    ~scope();
+};
 
 struct test_case
 {
@@ -371,12 +179,14 @@ struct test_case
             }
             console_color cc(White);
         }
+        subtests.clear();
         return !failed;
     }
 
     void check(bool result, const std::string& value, const char* expr)
     {
-        subtests.push_back(subtest{ result, as_string(padleft(22, expr), " | ", value), comment });
+        subtests.push_back(
+            subtest{ result, as_string(padleft(22, expr), " | ", value), current_scope_text() });
         result ? success++ : failed++;
         if (show_progress)
         {
@@ -407,16 +217,6 @@ struct test_case
         check(result, as_string(comparison.left), expr);
     }
 
-    void set_comment(const std::string& text)
-    {
-        comment = text;
-        if (show_progress)
-        {
-            println();
-            println(comment, ":");
-        }
-    }
-
     struct subtest
     {
         bool success;
@@ -424,15 +224,51 @@ struct test_case
         std::string comment;
     };
 
+    void scope_changed()
+    {
+        if (show_progress)
+        {
+            println();
+            println(current_scope_text(), ":");
+        }
+    }
+    std::string current_scope_text() const
+    {
+        scope* s = this->current_scope;
+        std::string result;
+        while (s)
+        {
+            if (!result.empty())
+                result = "; " + result;
+            result = s->text + result;
+            s      = s->parent;
+        }
+        return result;
+    }
+
     test_func func;
     const char* name;
     std::vector<subtest> subtests;
-    std::string comment;
     int success;
     int failed;
     double time;
     bool show_progress;
+    scope* current_scope = nullptr;
 };
+
+inline scope::scope(std::string text)
+    : text(std::move(text)), current_test(active_test()), parent(current_test->current_scope)
+{
+    current_test->current_scope = this;
+    current_test->scope_changed();
+}
+
+inline scope::~scope()
+{
+    assert(active_test() == current_test);
+    assert(current_test->current_scope == this);
+    current_test->current_scope = parent;
+}
 
 template <typename Number>
 struct statistics
@@ -473,10 +309,10 @@ template <typename Arg0, typename Fn>
 void matrix(named_arg<Arg0>&& arg0, Fn&& fn)
 {
     cforeach(std::forward<Arg0>(arg0.value), [&](auto v0) {
-        active_test()->set_comment(as_string(arg0.name, " = ", v0));
+        scope s(as_string(arg0.name, " = ", v0));
         fn(v0);
     });
-    if (active_test()->show_progress)
+    if (active_test() && active_test()->show_progress)
         println();
 }
 
@@ -484,7 +320,7 @@ template <typename Arg0, typename Arg1, typename Fn>
 void matrix(named_arg<Arg0>&& arg0, named_arg<Arg1>&& arg1, Fn&& fn)
 {
     cforeach(std::forward<Arg0>(arg0.value), std::forward<Arg1>(arg1.value), [&](auto v0, auto v1) {
-        active_test()->set_comment(as_string(arg0.name, " = ", v0, ", ", arg1.name, " = ", v1));
+        scope s(as_string(arg0.name, " = ", v0, ", ", arg1.name, " = ", v1));
         fn(v0, v1);
     });
     if (active_test()->show_progress)
@@ -496,7 +332,7 @@ void matrix(named_arg<Arg0>&& arg0, named_arg<Arg1>&& arg1, named_arg<Arg2>&& ar
 {
     cforeach(std::forward<Arg0>(arg0.value), std::forward<Arg1>(arg1.value), std::forward<Arg2>(arg2.value),
              [&](auto v0, auto v1, auto v2) {
-                 active_test()->set_comment(
+                 scope s(
                      as_string(arg0.name, " = ", v0, ", ", arg1.name, " = ", v1, ", ", arg2.name, " = ", v2));
                  fn(v0, v1, v2);
              });
@@ -504,27 +340,54 @@ void matrix(named_arg<Arg0>&& arg0, named_arg<Arg1>&& arg1, named_arg<Arg2>&& ar
         println();
 }
 
-static int run_all(const std::string& name = std::string(), bool show_successful = false)
+template <typename Arg0, typename Arg1, typename Arg2, typename Arg3, typename Fn>
+void matrix(named_arg<Arg0>&& arg0, named_arg<Arg1>&& arg1, named_arg<Arg2>&& arg2, named_arg<Arg3>&& arg3,
+            Fn&& fn)
 {
+    cforeach(std::forward<Arg0>(arg0.value), std::forward<Arg1>(arg1.value), std::forward<Arg2>(arg2.value),
+             std::forward<Arg3>(arg3.value), [&](auto v0, auto v1, auto v2, auto v3) {
+                 scope s(as_string(arg0.name, " = ", v0, ", ", arg1.name, " = ", v1, ", ", arg2.name, " = ",
+                                   v2, arg3.name, " = ", v3));
+                 fn(v0, v1, v2, v3);
+             });
+    if (active_test()->show_progress)
+        println();
+}
+
+CMT_UNUSED static int run_all(const std::string& name = std::string(), bool show_successful = false)
+{
+    console_color c(White);
     std::vector<test_case*> success;
     std::vector<test_case*> failed;
+    int success_checks = 0;
+    int failed_checks  = 0;
     for (test_case* t : test_case::tests())
     {
         if (name.empty() || t->name == name)
+        {
             t->run(show_successful) ? success.push_back(t) : failed.push_back(t);
+            success_checks += t->success;
+            failed_checks += t->failed;
+        }
     }
     printfmt("{}\n", std::string(79, '='));
     if (!success.empty())
     {
         console_color cc(Green);
         printfmt("[{}]", padcenter(11, "SUCCESS", '-'));
-        printfmt(" {} tests\n", success.size());
+        printfmt(" {}/{} tests {}/{} checks\n", success.size(), success.size() + failed.size(),
+                 success_checks, success_checks + failed_checks);
     }
     if (!failed.empty())
     {
         console_color cc(Red);
         printfmt("[{}]", padcenter(11, "ERROR", '-'));
-        printfmt(" {} tests\n", failed.size());
+        printfmt(" {}/{} tests {}/{} checks\n", failed.size(), success.size() + failed.size(), failed_checks,
+                 success_checks + failed_checks);
+        for (test_case* t : failed)
+        {
+            print("              ", t->name, "\n");
+        }
     }
     return static_cast<int>(failed.size());
 }
@@ -539,6 +402,13 @@ void assert_is_same_decay()
 {
     static_assert(std::is_same<cometa::decay<T1>, cometa::decay<T2>>::value, "");
 }
+
+template <typename T, size_t NArgs>
+struct test_data_entry
+{
+    T arguments[NArgs];
+    T result;
+};
 
 #define TESTO_CHECK(...)                                                                                     \
     do                                                                                                       \
@@ -560,6 +430,7 @@ void assert_is_same_decay()
 #define TEST TESTO_TEST
 #define DTEST TESTO_DTEST
 #endif
-}
 
-CLANG_DIAGNOSTIC_PRAGMA(pop)
+} // namespace testo
+
+CMT_PRAGMA_GNU(GCC diagnostic pop)

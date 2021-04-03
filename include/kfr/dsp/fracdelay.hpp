@@ -1,4 +1,4 @@
-/** @addtogroup dsp
+/** @addtogroup fir
  *  @{
  */
 /*
@@ -7,7 +7,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -30,12 +30,16 @@
 namespace kfr
 {
 
+inline namespace CMT_ARCH_NAME
+{
+
 template <typename T, typename E1>
-CMT_INLINE internal::expression_short_fir<2, T, E1> fracdelay(E1&& e1, T delay)
+KFR_INTRINSIC internal::expression_short_fir<2, T, value_type_of<E1>, E1> fracdelay(E1&& e1, T delay)
 {
     if (delay < 0)
         delay = 0;
     univector<T, 2> taps({ 1 - delay, delay });
-    return internal::expression_short_fir<2, T, E1>(std::forward<E1>(e1), taps);
+    return internal::expression_short_fir<2, T, value_type_of<E1>, E1>(std::forward<E1>(e1), taps);
 }
-}
+} // namespace CMT_ARCH_NAME
+} // namespace kfr

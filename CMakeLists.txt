@@ -3,7 +3,7 @@
 #
 # KFR is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
+# the Free Software Foundation, either version 2 of the License, or
 # (at your option) any later version.
 #
 # KFR is distributed in the hope that it will be useful,
@@ -14,108 +14,124 @@
 # You should have received a copy of the GNU General Public License
 # along with KFR.
 
+cmake_minimum_required(VERSION 3.1)
 
-cmake_minimum_required(VERSION 2.8)
-
-if (CMAKE_VERSION VERSION_LESS "2.8.12")
-    function(add_compile_options)
-        add_definitions(${ARGN})
-    endfunction(add_compile_options)
-endif ()
-
-#set(DISABLE_CLANG 1)
-
-if(NOT CMAKE_CXX_COMPILER)
-
-    if (${CMAKE_GENERATOR} STREQUAL "MinGW Makefiles"
-        OR ${CMAKE_GENERATOR} STREQUAL "MSYS Makefiles"
-        OR ${CMAKE_GENERATOR} STREQUAL "Unix Makefiles"
-        OR ${CMAKE_GENERATOR} STREQUAL "Ninja")
-
-        # Find clang and set as c++ compiler for MinGW, MSYS and Unix
-        # If clang is not found, leave default compiler (usually GCC)
-
-        if(NOT DISABLE_CLANG)
-            find_program(CLANG_CXX_PATH clang++-4.0)
-            find_program(CLANG_CXX_PATH clang++-3.9)
-            find_program(CLANG_CXX_PATH clang++-3.8)
-            find_program(CLANG_CXX_PATH clang++-3.7)
-            find_program(CLANG_CXX_PATH clang++-3.6)
-            find_program(CLANG_CXX_PATH clang++)
-
-            # If clang is found
-            if(CLANG_CXX_PATH)
-                set(CMAKE_CXX_COMPILER ${CLANG_CXX_PATH})
-                message(STATUS "Clang found")
-            else()
-                message(STATUS "Clang not found")
-            endif()
-
-        else()
-            message(STATUS "Clang disabled")
-        endif()
-
-    elseif (${CMAKE_GENERATOR} STREQUAL "Visual Studio 14 2015"
-        OR ${CMAKE_GENERATOR} STREQUAL "Visual Studio 14 2015 Win64")
-
-        # Find LLVM-vs2014 toolset for MSVC
-        # If clang is not found, leave default Microsoft's cl.exe compiler
-
-        if(NOT DISABLE_CLANG)
-            file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/test_toolset")
-
-            # Check if toolset can be set
-            execute_process(COMMAND "${CMAKE_COMMAND}" -G "Visual Studio 14 2015" -T LLVM-vs2014 "${CMAKE_SOURCE_DIR}/cmake/test_toolset" WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/test_toolset" RESULT_VARIABLE TOOLSET_EXISTS OUTPUT_QUIET ERROR_QUIET)
-
-            if(${TOOLSET_EXISTS} EQUAL 0)
-                set(CMAKE_GENERATOR_TOOLSET LLVM-vs2014)
-                message(STATUS "LLVM-vs2014 found")
-            else()
-                message(STATUS "LLVM-vs2014 not found")
-            endif()
-        else()
-            message(STATUS "LLVM-vs2014 disabled")
-        endif()
-
-    endif()
-endif()
-
-if (${CMAKE_GENERATOR} STREQUAL "MinGW Makefiles"
-    OR ${CMAKE_GENERATOR} STREQUAL "MSYS Makefiles"
-    OR ${CMAKE_GENERATOR} STREQUAL "Unix Makefiles"
-    OR ${CMAKE_GENERATOR} STREQUAL "Ninja")
-    
-    if (CMAKE_CXX_COMPILER MATCHES "clang")
-        if (WIN32)
-            # On windows, clang requires --target
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --target=x86_64-w64-windows-gnu"  CACHE STRING "cxx compile flags" FORCE)
-        endif()
-    endif()
-endif()
-
-####################################
-
-# Release build by default
-if (CMAKE_BUILD_TYPE_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_BUILD_TYPE Release)
-endif ()
-
-# Only Debug and Release builds
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release" CACHE STRING "config types" FORCE)
-
-# Insert common c++ flags here
-set(CMAKE_CXX_FLAGS " ${CMAKE_CXX_FLAGS}" CACHE STRING "compile flags" FORCE)
+set(CMAKE_CXX_FLAGS
+    " ${CMAKE_CXX_FLAGS}"
+    CACHE STRING "compile flags" FORCE)
 
 project(kfr CXX)
 
-message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} ${CMAKE_CXX_COMPILER} ")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS ON)
 
-# Binary output directories
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR}/bin/Debug)
+if (WIN32 AND CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX
+        ""
+        CACHE STRING "Reset install prefix on Win32" FORCE)
+endif ()
 
-# Include list of source files
+if (WIN32)
+    set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+endif ()
+
+set(CMAKE_CXX_VISIBILITY_PRESET "default")
+set(CMAKE_C_VISIBILITY_PRESET "default")
+
+message(STATUS "Install prefix = ${CMAKE_INSTALL_PREFIX}")
+
+message(
+    STATUS
+        "C++ compiler: ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} ${CMAKE_CXX_COMPILER} "
+)
+message(STATUS CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR})
+
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+    set(X86 TRUE)
+else ()
+    set(X86 FALSE)
+endif ()
+
+if (X86)
+    message(STATUS X86)
+endif ()
+
+if (MSVC)
+    message(STATUS MSVC)
+endif ()
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
+                                              "AppleClang")
+    set(CLANG 1)
+else ()
+    set(CLANG 0)
+endif ()
+
+# Include autogenerated list of source files
 include(sources.cmake)
+
+option(ENABLE_TESTS "Enable tests and examples" OFF)
+if (CLANG)
+    option(ENABLE_DFT "Enable DFT and related algorithms." ON)
+    option(ENABLE_DFT_NP "Enable Non-power of 2 DFT" ON)
+    if (X86)
+        option(
+            ENABLE_DFT_MULTIARCH
+            "Build DFT static libraries for various architectures. Requires Clang"
+            OFF)
+    endif ()
+else ()
+    option(ENABLE_DFT "Enable DFT and related algorithms." OFF)
+    option(ENABLE_DFT_NP "Enable Non-power of 2 DFT" OFF)
+endif ()
+option(ENABLE_ASMTEST "Enable writing disassembly" OFF)
+option(REGENERATE_TESTS "Regenerate auto tests" OFF)
+option(DISABLE_CLANG_EXTENSIONS "Disable Clang vector extensions" OFF)
+option(KFR_EXTENDED_TESTS "Extended tests (up to hour)" OFF)
+option(SKIP_TESTS "Skip tests (only build)" OFF)
+mark_as_advanced(ENABLE_ASMTEST)
+mark_as_advanced(REGENERATE_TESTS)
+mark_as_advanced(DISABLE_CLANG_EXTENSIONS)
+
+if (NOT CPU_ARCH)
+    set(CPU_ARCH detect)
+endif ()
+
+if (CPU_ARCH STREQUAL "detect" AND X86)
+    message(STATUS "Detecting native cpu...")
+    try_run(
+        RUN_RESULT COMPILE_RESULT "${CMAKE_CURRENT_BINARY_DIR}/tmpdir"
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detect_cpu.cpp
+        CMAKE_FLAGS
+            "-DINCLUDE_DIRECTORIES=${CMAKE_CURRENT_SOURCE_DIR}/include"
+            -DCMAKE_CXX_STANDARD=17 -DCMAKE_CXX_STANDARD_REQUIRED=ON
+            -DCMAKE_CXX_EXTENSIONS=ON
+        COMPILE_OUTPUT_VARIABLE COMPILE_OUT
+        RUN_OUTPUT_VARIABLE RUN_OUT)
+    if (COMPILE_RESULT AND RUN_RESULT EQUAL 0)
+        message(STATUS DETECTED_CPU = ${RUN_OUT})
+        set(CPU_ARCH
+            ${RUN_OUT}
+            CACHE STRING "Detected CPU" FORCE)
+    else ()
+        message(STATUS COMPILE_RESULT = ${COMPILE_RESULT})
+        message(STATUS RUN_RESULT = ${RUN_RESULT})
+        message(STATUS COMPILE_OUT = ${COMPILE_OUT})
+        message(STATUS RUN_OUT = ${RUN_OUT})
+    endif ()
+endif ()
+
+include(cmake/target_set_arch.cmake)
+
+add_library(use_arch INTERFACE)
+target_set_arch(use_arch INTERFACE ${CPU_ARCH})
+
+if (WIN32)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-D_SILENCE_ALL_CXX17_DEPRECATION_WARNINGS)
+    add_definitions(-D_ENABLE_EXTENDED_ALIGNED_STORAGE)
+endif ()
 
 if (IOS)
     set(STD_LIB)
@@ -123,31 +139,200 @@ else ()
     set(STD_LIB stdc++)
 endif ()
 
-if (NOT MSVC)
-    # Enable C++14, disable exceptions and rtti
-    add_compile_options(-std=c++1y -fno-exceptions -fno-rtti )
-    if (NOT ARCH_FLAGS)
-        add_compile_options(-march=native)
-        if(WIN32)
-            set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mstackrealign -fno-asynchronous-unwind-tables")
-        endif()
-    else ()
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${ARCH_FLAGS}")
-    endif ()
-    link_libraries(${STD_LIB} pthread m)
+if (ANDROID)
+    set(PTHREAD_LIB)
 else ()
-    # Disable exceptions
-    add_compile_options(/EHsc /D_HAS_EXCEPTIONS=0 /D_CRT_SECURE_NO_WARNINGS=1)
-    add_compile_options(/arch:AVX)
+    set(PTHREAD_LIB pthread)
 endif ()
 
-if ("${CMAKE_GENERATOR_TOOLSET}" STREQUAL "LLVM-vs2014")
-    add_compile_options( -Wno-unused-command-line-argument )
-endif()
+# KFR library
+add_library(kfr INTERFACE)
+target_sources(kfr INTERFACE ${KFR_SRC})
+target_include_directories(kfr INTERFACE include)
+target_compile_options(kfr INTERFACE "$<$<CONFIG:DEBUG>:-DKFR_DEBUG>")
+if (APPLE)
+    target_compile_options(kfr INTERFACE -faligned-allocation)
+endif ()
+if (NOT IOS)
+    if (CLANG)
+        target_compile_options(kfr INTERFACE -Xclang -mstackrealign)
+    elseif (NOT MSVC)
+        target_compile_options(kfr INTERFACE -mstackrealign)
+    endif ()
+endif ()
+if (MSVC)
+    target_compile_options(kfr INTERFACE -bigobj -EHsc)
+else ()
+    target_link_libraries(kfr INTERFACE ${STD_LIB} ${PTHREAD_LIB} m)
+endif ()
+if (DISABLE_CLANG_EXTENSIONS)
+    target_compile_definitions(kfr INTERFACE -DCMT_DISABLE_CLANG_EXT)
+endif ()
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(kfr INTERFACE -Wno-ignored-qualifiers)
+endif ()
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(kfr INTERFACE -Wno-c++1z-extensions)
+endif ()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/tests/cmake/")
+if (NOT ENABLE_DFT)
+    target_compile_definitions(kfr INTERFACE -DKFR_NO_DFT)
+endif ()
+if (KFR_EXTENDED_TESTS)
+    target_compile_definitions(kfr INTERFACE -DKFR_EXTENDED_TESTS)
+endif ()
 
-file(MAKE_DIRECTORY ${PROJECT_BINARY_DIR}/svg)
+message(STATUS CPU_ARCH=${CPU_ARCH})
 
-add_subdirectory(examples)
-add_subdirectory(tests)
+if (X86)
+    add_executable(detect_cpu ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detect_cpu.cpp)
+    target_link_libraries(detect_cpu PRIVATE kfr)
+    target_set_arch(detect_cpu PRIVATE generic)
+endif ()
+
+function (add_arch_library NAME ARCH SRCS DEFS)
+    add_library(${NAME}_${ARCH} ${SRCS})
+    target_link_libraries(${NAME}_${ARCH} kfr)
+    target_set_arch(${NAME}_${ARCH} PRIVATE ${ARCH})
+    target_compile_options(${NAME}_${ARCH} PRIVATE ${DEFS})
+    target_link_libraries(${NAME}_all INTERFACE ${NAME}_${ARCH})
+    target_compile_options(${NAME}_${ARCH} PRIVATE -flto)
+endfunction ()
+
+if (ENABLE_DFT)
+
+    if (MSVC)
+        set(KFR_DFT_DEFS -fp:fast)
+    else ()
+        set(KFR_DFT_DEFS -ffast-math)
+    endif ()
+
+    if (ENABLE_DFT_MULTIARCH)
+        add_library(kfr_dft INTERFACE)
+        add_library(kfr_dft_all INTERFACE)
+        target_link_libraries(kfr_dft INTERFACE kfr kfr_dft_all)
+        target_compile_definitions(
+            kfr_dft
+            INTERFACE -DKFR_DFT_MULTI=1
+                      -DCMT_MULTI=1
+                      -DCMT_MULTI_ENABLED_SSE2=1
+                      -DCMT_MULTI_ENABLED_SSE41=1
+                      -DCMT_MULTI_ENABLED_AVX=1
+                      -DCMT_MULTI_ENABLED_AVX2=1
+                      -DCMT_MULTI_ENABLED_AVX512=1)
+
+        add_arch_library(kfr_dft sse2 "${KFR_DFT_SRC}" "${KFR_DFT_DEFS}")
+        add_arch_library(kfr_dft sse41 "${KFR_DFT_SRC}" "${KFR_DFT_DEFS}")
+        add_arch_library(kfr_dft avx "${KFR_DFT_SRC}" "${KFR_DFT_DEFS}")
+        add_arch_library(kfr_dft avx2 "${KFR_DFT_SRC}" "${KFR_DFT_DEFS}")
+        add_arch_library(kfr_dft avx512 "${KFR_DFT_SRC}" "${KFR_DFT_DEFS}")
+
+    else ()
+        add_library(kfr_dft ${KFR_DFT_SRC})
+        target_link_libraries(kfr_dft kfr use_arch)
+        target_compile_options(kfr_dft PRIVATE "${KFR_DFT_DEFS}")
+        if (ENABLE_DFT_NP)
+            target_compile_definitions(kfr_dft PUBLIC -DKFR_DFT_NPo2)
+        else ()
+            target_compile_definitions(kfr_dft PUBLIC -DKFR_DFT_NO_NPo2)
+        endif ()
+
+    endif ()
+
+    if (ENABLE_CAPI_BUILD)
+        add_subdirectory(capi)
+    endif ()
+endif ()
+
+if (ENABLE_TESTS)
+    add_subdirectory(examples)
+    add_subdirectory(tests)
+    add_subdirectory(tools)
+endif ()
+
+add_library(kfr_io ${KFR_IO_SRC})
+target_link_libraries(kfr_io kfr)
+target_link_libraries(kfr_io use_arch)
+
+install(
+    TARGETS kfr kfr_io
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION bin)
+
+if (ENABLE_CAPI_BUILD)
+    install(
+        TARGETS kfr_capi
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin)
+endif ()
+
+set(kfr_defines)
+
+function(append_defines_from target)
+    get_target_property(compile_defs ${target} INTERFACE_COMPILE_DEFINITIONS)
+    if (compile_defs)
+        list(APPEND kfr_defines "${compile_defs}")
+    endif ()
+    set(kfr_defines ${kfr_defines} PARENT_SCOPE)
+endfunction()
+
+append_defines_from(kfr)
+if (ENABLE_DFT)
+    append_defines_from(kfr_dft)
+endif ()
+append_defines_from(kfr_io)
+
+message(STATUS kfr_defines = "${kfr_defines}")
+string(REPLACE "=" " " kfr_defines "${kfr_defines}")
+string(REPLACE ";" "\n#define " kfr_defines "${kfr_defines}")
+set(kfr_defines "#define ${kfr_defines}\n")
+
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/kfr_config.h "${kfr_defines}")
+
+if (ENABLE_DFT)
+    if (ENABLE_DFT_MULTIARCH)
+        install(
+            TARGETS kfr_dft_sse2 kfr_dft_sse41 kfr_dft_avx kfr_dft_avx2
+                    kfr_dft_avx512
+            ARCHIVE DESTINATION lib
+            LIBRARY DESTINATION lib
+            RUNTIME DESTINATION bin)
+    else ()
+        install(
+            TARGETS kfr_dft
+            ARCHIVE DESTINATION lib
+            LIBRARY DESTINATION lib
+            RUNTIME DESTINATION bin)
+    endif ()
+endif ()
+
+install(DIRECTORY include/kfr DESTINATION include)
+
+install(
+    FILES ${CMAKE_CURRENT_BINARY_DIR}/kfr_config.h
+    DESTINATION include/kfr
+    RENAME config.h
+    )
+
+# uninstall target
+if (NOT TARGET uninstall)
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/cmake/cmake_uninstall.cmake.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake" IMMEDIATE
+        @ONLY)
+
+    add_custom_target(
+        uninstall
+        COMMAND ${CMAKE_COMMAND} -P
+                ${CMAKE_CURRENT_BINARY_DIR}/cmake/cmake_uninstall.cmake)
+endif ()
+
+if (DEBUG_CMAKE)
+    get_cmake_property(_variableNames VARIABLES)
+    list(SORT _variableNames)
+    foreach (_variableName ${_variableNames})
+        message(STATUS "${_variableName}=${${_variableName}}")
+    endforeach ()
+endif ()

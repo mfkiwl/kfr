@@ -4,7 +4,7 @@
 
   KFR is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
+  the Free Software Foundation, either version 2 of the License, or
   (at your option) any later version.
 
   KFR is distributed in the hope that it will be useful,
@@ -22,47 +22,47 @@
  */
 
 #include "base.hpp"
-#include "cpuid.hpp"
 #include "dft.hpp"
 #include "dsp.hpp"
+#include "graphics.hpp"
 #include "io.hpp"
 
 /** @defgroup cometa Cometa
-* @brief Metaprogramming
-*/
+ * @brief Metaprogramming
+ */
 
 /** @defgroup types Types
-* @brief Core types
-*/
+ * @brief Core types
+ */
 
 /** @defgroup expressions Expressions
-* @brief Expressions
-*/
+ * @brief Expressions
+ */
 
 /** @defgroup shuffle Shuffle
-* @brief Vector shuffle functions
-*/
+ * @brief Vector shuffle functions
+ */
 
 /** @defgroup utility Utility
-* @brief Utility classes and functions
-*/
+ * @brief Utility classes and functions
+ */
 
 /** @defgroup dft DFT
-* @brief Fast Fourier Transform & Direct Fourier Transform
-*/
+ * @brief Fast Fourier Transform & Direct Fourier Transform
+ */
 
 /** @defgroup dsp DSP
-* @brief Filters and other DSP-related functions
-*/
+ * @brief Filters and other DSP-related functions
+ */
 
 /** @defgroup io IO
-* @brief Input & Output
-*/
+ * @brief Input & Output
+ */
 
 /** @defgroup math Math
-* @brief Mathematical functions
-*/
+ * @brief Mathematical functions
+ */
 
 /** @defgroup cpuid CPUID
-* @brief CPU detection
-*/
+ * @brief CPU detection
+ */
