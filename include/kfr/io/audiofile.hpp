@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -28,9 +28,17 @@
 #include "../base/basic_expressions.hpp"
 #include "../base/conversion.hpp"
 #include "../base/univector.hpp"
-#include "../cometa/ctti.hpp"
+#include "../meta/ctti.hpp"
 #include "../simd/vec.hpp"
 #include "file.hpp"
+
+#ifdef KFR_COMPILER_IS_MSVC
+#pragma warning(push)
+#pragma warning(disable : 4996)
+#else
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 namespace kfr
 {
@@ -46,14 +54,14 @@ struct audio_format
 struct audio_format_and_length : audio_format
 {
     using audio_format::audio_format;
-    constexpr audio_format_and_length() CMT_NOEXCEPT {}
+    constexpr audio_format_and_length() noexcept {}
     constexpr audio_format_and_length(const audio_format& fmt) : audio_format(fmt) {}
 
     imax length = 0; // in samples
 };
 
 template <typename T>
-struct audio_reader : public abstract_reader<T>
+struct [[deprecated("Use audio_decoder instead")]] audio_reader : public abstract_reader<T>
 {
     /// @brief Reads interleaved audio
     using abstract_reader<T>::read;
@@ -74,7 +82,7 @@ struct audio_reader : public abstract_reader<T>
 };
 
 template <typename T>
-struct audio_writer : public abstract_writer<T>
+struct [[deprecated("Use audio_encoder instead")]] audio_writer : public abstract_writer<T>
 {
     /// @brief Writes interleaved audio
     using abstract_writer<T>::write;
@@ -106,7 +114,7 @@ struct wav_file_deleter
 
 /// @brief WAV format writer
 template <typename T>
-struct audio_writer_wav : audio_writer<T>
+struct [[deprecated("Use audio_encoder instead")]] audio_writer_wav : audio_writer<T>
 {
     /// @brief Constructs WAV writer using target writer and format
     audio_writer_wav(std::shared_ptr<abstract_writer<>>&& writer, const audio_format& fmt);
@@ -123,7 +131,7 @@ struct audio_writer_wav : audio_writer<T>
 
     const audio_format_and_length& format() const override { return fmt; }
 
-    imax tell() const override { return fmt.length; }
+    uint64_t tell() const override { return fmt.length; }
 
     bool seek(imax, seek_origin) override { return false; }
 
@@ -141,7 +149,7 @@ extern template struct audio_writer_wav<f64>;
 
 /// @brief WAV format reader
 template <typename T>
-struct audio_reader_wav : audio_reader<T>
+struct [[deprecated("Use audio_decoder instead")]] audio_reader_wav : audio_reader<T>
 {
     using audio_reader<T>::read;
 
@@ -159,7 +167,7 @@ struct audio_reader_wav : audio_reader<T>
     const audio_format_and_length& format() const override { return fmt; }
 
     /// @brief Returns current position
-    imax tell() const override { return position; }
+    uint64_t tell() const override { return position; }
 
 private:
     std::shared_ptr<abstract_reader<>> reader;
@@ -188,7 +196,7 @@ struct flac_file_deleter
 
 /// @brief FLAC format reader
 template <typename T>
-struct audio_reader_flac : audio_reader<T>
+struct [[deprecated("Use audio_decoder instead")]] audio_reader_flac : audio_reader<T>
 {
     /// @brief Constructs FLAC reader
     audio_reader_flac(std::shared_ptr<abstract_reader<>>&& reader);
@@ -204,7 +212,7 @@ struct audio_reader_flac : audio_reader<T>
     const audio_format_and_length& format() const override { return fmt; }
 
     /// @brief Returns current position
-    imax tell() const override { return position; }
+    uint64_t tell() const override { return position; }
 
 private:
     std::shared_ptr<abstract_reader<>> reader;
@@ -239,7 +247,7 @@ struct mp3_file_deleter
 
 /// @brief MP3 format reader
 template <typename T>
-struct audio_reader_mp3 : audio_reader<T>
+struct [[deprecated("Use audio_decoder instead")]] audio_reader_mp3 : audio_reader<T>
 {
     /// @brief Constructs MP3 reader
     audio_reader_mp3(std::shared_ptr<abstract_reader<>>&& reader);
@@ -257,7 +265,7 @@ struct audio_reader_mp3 : audio_reader<T>
     const audio_format_and_length& format() const override { return fmt; }
 
     /// @brief Returns current position
-    imax tell() const override { return position; }
+    uint64_t tell() const override { return position; }
 
 private:
     std::shared_ptr<abstract_reader<>> reader;
@@ -274,3 +282,9 @@ extern template struct audio_reader_mp3<f64>;
 #endif
 
 } // namespace kfr
+
+#ifdef KFR_COMPILER_IS_MSVC
+#pragma warning(pop)
+#else
+#pragma GCC diagnostic pop
+#endif

@@ -1,12 +1,14 @@
 /*
  * ccv, part of KFR (https://www.kfr.dev)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
 // Complex convolution filter examples
 
-#define CMT_BASETYPE_F32
+#ifndef KFR_BASETYPE_F32
+#define KFR_BASETYPE_F32
+#endif
 
 #include <chrono>
 #include <kfr/base.hpp>

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -31,10 +31,10 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 template <size_t N>
 KFR_INTRINSIC vec<f32, N> atan2k(const vec<f32, N>& yy, const vec<f32, N>& xx)
@@ -218,10 +218,10 @@ KFR_HANDLE_SCALAR(atan)
 KFR_HANDLE_SCALAR(atan2)
 KFR_HANDLE_SCALAR(atandeg)
 KFR_HANDLE_SCALAR(atan2deg)
-} // namespace intrinsics
+} // namespace intr
 KFR_I_FN(atan)
 KFR_I_FN(atandeg)
 KFR_I_FN(atan2)
 KFR_I_FN(atan2deg)
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

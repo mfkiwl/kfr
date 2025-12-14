@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -11,10 +11,10 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-TEST(resampler_test)
+TEST_CASE("resampler_test")
 {
     const int in_sr  = 44100;
     const int out_sr = 48000;
@@ -30,7 +30,7 @@ TEST(resampler_test)
 
     CHECK(rms(slice(out - ref, static_cast<size_t>(ceil(delay * 2)))) < 0.005f);
 }
-TEST(resampler_test_complex)
+TEST_CASE("resampler_test_complex")
 {
     using type       = complex<fbase>;
     const int in_sr  = 44100;
@@ -47,5 +47,5 @@ TEST(resampler_test_complex)
 
     CHECK(rms(cabs(slice(out - ref, static_cast<size_t>(ceil(delay * 2))))) < 0.005f);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

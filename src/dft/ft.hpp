@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -36,37 +36,40 @@
 #include <kfr/base/memory.hpp>
 #include "data/sincos.hpp"
 
-CMT_PRAGMA_GNU(GCC diagnostic push)
-#if CMT_HAS_WARNING("-Wpass-failed")
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wpass-failed")
+KFR_PRAGMA_GNU(GCC diagnostic push)
+#if KFR_HAS_WARNING("-Wpass-failed")
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wpass-failed")
 #endif
 
-CMT_PRAGMA_MSVC(warning(push))
-CMT_PRAGMA_MSVC(warning(disable : 4127))
+KFR_PRAGMA_MSVC(warning(push))
+KFR_PRAGMA_MSVC(warning(disable : 4127))
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, size_t N>
 using cvec = vec<T, N * 2>;
 
-namespace intrinsics
+namespace intr
 {
 
-template <typename T, size_t N, KFR_ENABLE_IF(N >= 2)>
+template <typename T, size_t N>
+    requires(N >= 2)
 KFR_INTRINSIC vec<T, N> cmul_impl(const vec<T, N>& x, const vec<T, N>& y)
 {
     return subadd(x * dupeven(y), swap<2>(x) * dupodd(y));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N > 2)>
+template <typename T, size_t N>
+    requires(N > 2)
 KFR_INTRINSIC vec<T, N> cmul_impl(const vec<T, N>& x, const vec<T, 2>& y)
 {
     vec<T, N> yy = resize<N>(y);
     return cmul_impl(x, yy);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N > 2)>
+template <typename T, size_t N>
+    requires(N > 2)
 KFR_INTRINSIC vec<T, N> cmul_impl(const vec<T, 2>& x, const vec<T, N>& y)
 {
     vec<T, N> xx = resize<N>(x);
@@ -75,22 +78,25 @@ KFR_INTRINSIC vec<T, N> cmul_impl(const vec<T, 2>& x, const vec<T, N>& y)
 
 /// Complex Multiplication
 template <typename T, size_t N1, size_t N2>
-KFR_INTRINSIC vec<T, const_max(N1, N2)> cmul(const vec<T, N1>& x, const vec<T, N2>& y)
+KFR_INTRINSIC vec<T, std::max(N1, N2)> cmul(const vec<T, N1>& x, const vec<T, N2>& y)
 {
-    return intrinsics::cmul_impl(x, y);
+    return intr::cmul_impl(x, y);
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(N >= 2)>
+template <typename T, size_t N>
+    requires(N >= 2)
 KFR_INTRINSIC vec<T, N> cmul_conj(const vec<T, N>& x, const vec<T, N>& y)
 {
     return swap<2>(subadd(swap<2>(x) * dupeven(y), x * dupodd(y)));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N >= 2)>
+template <typename T, size_t N>
+    requires(N >= 2)
 KFR_INTRINSIC vec<T, N> cmul_2conj(const vec<T, N>& in0, const vec<T, N>& in1, const vec<T, N>& tw)
 {
     return (in0 + in1) * dupeven(tw) + swap<2>(cnegimag(in0 - in1)) * dupodd(tw);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N >= 2)>
+template <typename T, size_t N>
+    requires(N >= 2)
 KFR_INTRINSIC void cmul_2conj(vec<T, N>& out0, vec<T, N>& out1, const vec<T, 2>& in0, const vec<T, 2>& in1,
                               const vec<T, N>& tw)
 {
@@ -103,13 +109,15 @@ KFR_INTRINSIC void cmul_2conj(vec<T, N>& out0, vec<T, N>& out1, const vec<T, 2>&
     out0 += sumtw + diftw;
     out1 += sumtw - diftw;
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N > 2)>
+template <typename T, size_t N>
+    requires(N > 2)
 KFR_INTRINSIC vec<T, N> cmul_conj(const vec<T, N>& x, const vec<T, 2>& y)
 {
     vec<T, N> yy = resize<N>(y);
     return cmul_conj(x, yy);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N > 2)>
+template <typename T, size_t N>
+    requires(N > 2)
 KFR_INTRINSIC vec<T, N> cmul_conj(const vec<T, 2>& x, const vec<T, N>& y)
 {
     vec<T, N> xx = resize<N>(x);
@@ -459,13 +467,13 @@ constexpr static inline cvec<T, N> twiddleimagmask()
     return inverse ? broadcast<N * 2, T>(-1, +1) : broadcast<N * 2, T>(+1, -1);
 }
 
-CMT_PRAGMA_GNU(GCC diagnostic push)
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wconversion")
+KFR_PRAGMA_GNU(GCC diagnostic push)
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wconversion")
 
-CMT_PRAGMA_GNU(GCC diagnostic pop)
+KFR_PRAGMA_GNU(GCC diagnostic pop)
 
 template <typename T, size_t N>
-CMT_NOINLINE static vec<T, N> cossin_conj(const vec<T, N>& x)
+KFR_NOINLINE static vec<T, N> cossin_conj(const vec<T, N>& x)
 {
     return negodd(cossin(x));
 }
@@ -741,7 +749,8 @@ KFR_INTRINSIC void apply_twiddles4(cvec<T, N>& __restrict a1, cvec<T, N>& __rest
     apply_twiddles4<N, inverse>(a1, a2, a3, tw1, tw2, tw3, a1, a2, a3);
 }
 
-template <size_t N, bool inverse = false, typename T, typename = u8[N - 1]>
+template <size_t N, bool inverse = false, typename T>
+    requires(N > 1)
 KFR_INTRINSIC void apply_twiddles4(cvec<T, N>& __restrict a1, cvec<T, N>& __restrict a2,
                                    cvec<T, N>& __restrict a3, const cvec<T, 1>& tw1, const cvec<T, 1>& tw2,
                                    const cvec<T, 1>& tw3)
@@ -749,7 +758,8 @@ KFR_INTRINSIC void apply_twiddles4(cvec<T, N>& __restrict a1, cvec<T, N>& __rest
     apply_twiddles4<N, inverse>(a1, a2, a3, resize<N * 2>(tw1), resize<N * 2>(tw2), resize<N * 2>(tw3));
 }
 
-template <size_t N, bool inverse = false, typename T, typename = u8[N - 2]>
+template <size_t N, bool inverse = false, typename T>
+    requires(N > 2)
 KFR_INTRINSIC void apply_twiddles4(cvec<T, N>& __restrict a1, cvec<T, N>& __restrict a2,
                                    cvec<T, N>& __restrict a3, cvec<T, N / 2> tw1, cvec<T, N / 2> tw2,
                                    cvec<T, N / 2> tw3)
@@ -1507,12 +1517,18 @@ KFR_INTRINSIC void cwrite_transposed(cbool_t<transposed>, complex<T>* ptr, vec<T
 template <size_t I, size_t radix, typename T, size_t N, size_t width = N / 2>
 KFR_INTRINSIC vec<T, N> mul_tw(cbool_t<false>, const vec<T, N>& x, const complex<T>* twiddle)
 {
-    return I == 0 ? x : cmul(x, cread<width>(twiddle + width * (I - 1)));
+    if constexpr (I == 0)
+        return x;
+    else
+        return cmul(x, cread<width>(twiddle + width * (I - 1)));
 }
 template <size_t I, size_t radix, typename T, size_t N, size_t width = N / 2>
 KFR_INTRINSIC vec<T, N> mul_tw(cbool_t<true>, const vec<T, N>& x, const complex<T>* twiddle)
 {
-    return I == 0 ? x : cmul_conj(x, cread<width>(twiddle + width * (I - 1)));
+    if constexpr (I == 0)
+        return x;
+    else
+        return cmul_conj(x, cread<width>(twiddle + width * (I - 1)));
 }
 
 // Non-final
@@ -1521,16 +1537,15 @@ KFR_INTRINSIC void butterfly_helper(csizes_t<I...>, size_t i, csize_t<width>, cs
                                     cbool_t<inverse>, complex<T>* out, const complex<T>* in,
                                     const complex<T>* tw, size_t stride)
 {
-    carray<cvec<T, width>, radix> inout;
+    std::array<cvec<T, width>, radix> inout;
 
-    swallow{ (inout.get(csize_t<I>()) = cread<width>(in + i + stride * I))... };
+    swallow{ (inout[I] = cread<width>(in + i + stride * I))... };
 
-    butterfly(cbool_t<inverse>(), inout.template get<I>()..., inout.template get<I>()...);
+    butterfly(cbool_t<inverse>(), inout[I]..., inout[I]...);
 
-    swallow{ (
-        cwrite<width>(out + i + stride * I,
-                      mul_tw<I, radix>(cbool_t<inverse>(), inout.template get<I>(), tw + i * (radix - 1))),
-        0)... };
+    swallow{ (cwrite<width>(out + i + stride * I,
+                            mul_tw<I, radix>(cbool_t<inverse>(), inout[I], tw + i * (radix - 1))),
+              0)... };
 }
 
 // Final
@@ -1538,14 +1553,14 @@ template <typename T, size_t width, size_t radix, bool inverse, size_t... I>
 KFR_INTRINSIC void butterfly_helper(csizes_t<I...>, size_t i, csize_t<width>, csize_t<radix>,
                                     cbool_t<inverse>, complex<T>* out, const complex<T>* in, size_t stride)
 {
-    carray<cvec<T, width>, radix> inout;
+    std::array<cvec<T, width>, radix> inout;
 
-    //        swallow{ ( inout.get( csize<I> ) = infn( i, I, cvec<T, width>( ) ) )... };
-    cread_transposed(ctrue, in + i * radix, inout.template get<I>()...);
+    //        swallow{ ( inout[I] = infn( i, I, cvec<T, width>( ) ) )... };
+    cread_transposed(ctrue, in + i * radix, inout[I]...);
 
-    butterfly(cbool_t<inverse>(), inout.template get<I>()..., inout.template get<I>()...);
+    butterfly(cbool_t<inverse>(), inout[I]..., inout[I]...);
 
-    swallow{ (cwrite<width>(out + i + stride * I, inout.get(csize_t<I>())), 0)... };
+    swallow{ (cwrite<width>(out + i + stride * I, inout[I]), 0)... };
 }
 
 template <size_t width, size_t radix, typename... Args>
@@ -1561,7 +1576,7 @@ KFR_INTRINSIC void butterfly_cycle(size_t&, size_t, csize_t<0>, Args&&...)
 template <size_t width, typename... Args>
 KFR_INTRINSIC void butterfly_cycle(size_t& i, size_t count, csize_t<width>, Args&&... args)
 {
-    CMT_LOOP_NOUNROLL
+    KFR_LOOP_NOUNROLL
     for (; i < count / width * width; i += width)
         butterfly(i, csize_t<width>(), std::forward<Args>(args)...);
     butterfly_cycle(i, count, csize_t<width / 2>(), std::forward<Args>(args)...);
@@ -1570,7 +1585,7 @@ KFR_INTRINSIC void butterfly_cycle(size_t& i, size_t count, csize_t<width>, Args
 template <size_t width, typename... Args>
 KFR_INTRINSIC void butterflies(size_t count, csize_t<width>, Args&&... args)
 {
-    CMT_ASSUME(count > 0);
+    KFR_ASSUME(count > 0);
     size_t i = 0;
     butterfly_cycle(i, count, csize_t<width>(), std::forward<Args>(args)...);
 }
@@ -1588,7 +1603,7 @@ KFR_INTRINSIC void generic_butterfly_cycle(csize_t<width>, Tradix radix, cbool_t
                                            const complex<T>* in, Tstride ostride, Thalfradix halfradix,
                                            Thalfradixsqr halfradix_sqr, const complex<T>* twiddle, size_t i)
 {
-    CMT_LOOP_NOUNROLL
+    KFR_LOOP_NOUNROLL
     for (; i < halfradix / width * width; i += width)
     {
         const cvec<T, 1> in0 = cread<1>(in);
@@ -1629,7 +1644,8 @@ KFR_INTRINSIC vec<T, 2> hcadd(vec<T, 2> value)
 {
     return value;
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N >= 4)>
+template <typename T, size_t N>
+    requires(N >= 4)
 KFR_INTRINSIC vec<T, 2> hcadd(vec<T, N> value)
 {
     return hcadd(low(value) + high(value));
@@ -1639,17 +1655,17 @@ template <size_t width, typename T, bool inverse, typename Tstride = csize_t<1>>
 KFR_INTRINSIC void generic_butterfly_w(size_t radix, cbool_t<inverse>, complex<T>* out, const complex<T>* in,
                                        const complex<T>* twiddle, Tstride ostride = Tstride{})
 {
-    CMT_ASSUME(radix > 0);
+    KFR_ASSUME(radix > 0);
     {
         cvec<T, width> sum = T();
         size_t j           = 0;
-        CMT_LOOP_NOUNROLL
+        KFR_LOOP_NOUNROLL
         for (; j < radix / width * width; j += width)
         {
             sum += cread<width>(in + j);
         }
         cvec<T, 1> sums = T();
-        CMT_LOOP_NOUNROLL
+        KFR_LOOP_NOUNROLL
         for (; j < radix; j++)
         {
             sums += cread<1>(in + j);
@@ -1657,7 +1673,7 @@ KFR_INTRINSIC void generic_butterfly_w(size_t radix, cbool_t<inverse>, complex<T
         cwrite<1>(out, hcadd(sum) + sums);
     }
     const auto halfradix = radix / 2;
-    CMT_ASSUME(halfradix > 0);
+    KFR_ASSUME(halfradix > 0);
     size_t i = 0;
 
     generic_butterfly_cycle(csize_t<width>(), radix, cbool_t<inverse>(), out, in, ostride, halfradix,
@@ -1672,13 +1688,13 @@ KFR_INTRINSIC void spec_generic_butterfly_w(csize_t<radix>, cbool_t<inverse>, co
     {
         cvec<T, width> sum = T();
         size_t j           = 0;
-        CMT_LOOP_UNROLL
+        KFR_LOOP_UNROLL
         for (; j < radix / width * width; j += width)
         {
             sum += cread<width>(in + j);
         }
         cvec<T, 1> sums = T();
-        CMT_LOOP_UNROLL
+        KFR_LOOP_UNROLL
         for (; j < radix; j++)
         {
             sums += cread<1>(in + j);
@@ -1687,7 +1703,7 @@ KFR_INTRINSIC void spec_generic_butterfly_w(csize_t<radix>, cbool_t<inverse>, co
     }
     const size_t halfradix     = radix / 2;
     const size_t halfradix_sqr = halfradix * halfradix;
-    CMT_ASSUME(halfradix > 0);
+    KFR_ASSUME(halfradix > 0);
     size_t i = 0;
 
     generic_butterfly_cycle(csize_t<width>(), radix, cbool_t<inverse>(), out, in, ostride, halfradix,
@@ -1700,12 +1716,12 @@ KFR_INTRINSIC void generic_butterfly(size_t radix, cbool_t<inverse>, complex<T>*
 {
     cswitch(
         csizes_t<11, 13>(), radix,
-        [&](auto radix_) CMT_INLINE_LAMBDA
+        [&](auto radix_) KFR_INLINE_LAMBDA
         {
             constexpr size_t width = vector_width<T>;
             spec_generic_butterfly_w<width>(radix_, cbool_t<inverse>(), out, in, twiddle, ostride);
         },
-        [&]() CMT_INLINE_LAMBDA
+        [&]() KFR_INLINE_LAMBDA
         {
             constexpr size_t width = vector_width<T>;
             generic_butterfly_w<width>(radix, cbool_t<inverse>(), out, in, twiddle, ostride);
@@ -1776,10 +1792,44 @@ KFR_INTRINSIC void cdigitreverse4_write<false, f64, 32>(complex<f64>* dest, cons
     cwrite<1>(dest + 15, part<16, 15>(x));
 }
 #endif
-} // namespace intrinsics
-} // namespace CMT_ARCH_NAME
+
+template <typename T>
+KFR_INLINE cvec<T, 1> calculate_twiddle_impl(size_t n, size_t size)
+{
+    T kth = c_pi<T, 2> * (n / static_cast<T>(size));
+    return make_vector<T>(std::cos(kth), -std::sin(kth));
+}
+
+template <typename T>
+KFR_NOINLINE cvec<T, 1> calculate_twiddle(size_t n, size_t size)
+{
+    n     = n % size;
+    int q = 0;
+    if (size % 2 == 0 && n >= size / 2)
+    {
+        q += 2;
+        n -= size / 2;
+    }
+    if (size % 4 == 0 && n >= size / 4)
+    {
+        q += 1;
+        n -= size / 4;
+    }
+    vec<T, 2> result = make_vector<T>(1, 0);
+    if (n != 0)
+        result = calculate_twiddle_impl<T>(n, size);
+    if (q & 1)
+        result = negodd(swap<2>(result));
+    if (q & 2)
+        result = -result;
+
+    return result;
+}
+
+} // namespace intr
+} // namespace KFR_ARCH_NAME
 } // namespace kfr
 
-CMT_PRAGMA_MSVC(warning(pop))
+KFR_PRAGMA_MSVC(warning(pop))
 
-CMT_PRAGMA_GNU(GCC diagnostic pop)
+KFR_PRAGMA_GNU(GCC diagnostic pop)

@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -25,9 +25,9 @@
  */
 
 #include <kfr/io/audiofile.hpp>
-CMT_PRAGMA_GNU(GCC diagnostic push)
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wimplicit-fallthrough")
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wunused-function")
+KFR_PRAGMA_GNU(GCC diagnostic push)
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wimplicit-fallthrough")
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wunused-function")
 
 #ifndef KFR_DISABLE_WAV
 #define DR_WAV_NO_STDIO
@@ -38,7 +38,7 @@ CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wunused-function")
 #ifndef KFR_DISABLE_FLAC
 #define DR_FLAC_IMPLEMENTATION
 #define DR_FLAC_NO_STDIO
-#ifndef CMT_ARCH_SSE41
+#ifndef KFR_ARCH_SSE41
 #define DRFLAC_NO_SSE41
 #endif
 #include "dr/dr_flac.h"
@@ -109,10 +109,7 @@ void wav_file_deleter::operator()(wav_file* f)
     delete f;
 }
 
-void flac_file_deleter::operator()(flac_file* f)
-{
-    drflac_close(f);
-}
+void flac_file_deleter::operator()(flac_file* f) { drflac_close(f); }
 void mp3_file_deleter::operator()(mp3_file* f)
 {
     drmp3_uninit(f);
@@ -126,10 +123,9 @@ audio_writer_wav<T>::audio_writer_wav(std::shared_ptr<abstract_writer<>>&& write
     : writer(std::move(writer)), fmt(fmt)
 {
     drwav_data_format wav_fmt;
-    wav_fmt.channels   = static_cast<drwav_uint32>(fmt.channels);
-    wav_fmt.sampleRate = static_cast<drwav_uint32>(fmt.samplerate);
-    wav_fmt.format =
-        fmt.type >= audio_sample_type::first_float ? DR_WAVE_FORMAT_IEEE_FLOAT : DR_WAVE_FORMAT_PCM;
+    wav_fmt.channels      = static_cast<drwav_uint32>(fmt.channels);
+    wav_fmt.sampleRate    = static_cast<drwav_uint32>(fmt.samplerate);
+    wav_fmt.format        = audio_sample_is_float(fmt.type) ? DR_WAVE_FORMAT_IEEE_FLOAT : DR_WAVE_FORMAT_PCM;
     wav_fmt.bitsPerSample = static_cast<drwav_uint32>(audio_sample_bit_depth(fmt.type));
     wav_fmt.container     = fmt.use_w64 ? drwav_container_w64 : drwav_container_riff;
     f.reset(new internal_generic::wav_file());
@@ -210,9 +206,6 @@ audio_reader_wav<T>::audio_reader_wav(std::shared_ptr<abstract_reader<>>&& reade
     case DR_WAVE_FORMAT_PCM:
         switch (f->bitsPerSample)
         {
-        case 8:
-            fmt.type = audio_sample_type::i8;
-            break;
         case 16:
             fmt.type = audio_sample_type::i16;
             break;
@@ -221,9 +214,6 @@ audio_reader_wav<T>::audio_reader_wav(std::shared_ptr<abstract_reader<>>&& reade
             break;
         case 32:
             fmt.type = audio_sample_type::i32;
-            break;
-        case 64:
-            fmt.type = audio_sample_type::i64;
             break;
         default:
             fmt.type = audio_sample_type::unknown;
@@ -407,4 +397,4 @@ template struct audio_reader_mp3<f64>;
 
 } // namespace kfr
 
-CMT_PRAGMA_GNU(GCC diagnostic pop)
+KFR_PRAGMA_GNU(GCC diagnostic pop)

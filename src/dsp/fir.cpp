@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -23,13 +23,16 @@
   disclosing the source code of your own applications.
   See https://www.kfrlib.com for details.
  */
+#include <kfr/cident.h>
+#if !defined KFR_SKIP_IF_NON_X86 || defined(KFR_ARCH_X86)
+
 #include <kfr/dsp/fir.hpp>
 #include <kfr/multiarch.h>
 
 namespace kfr
 {
 
-CMT_MULTI_PROTO(namespace impl {
+KFR_MULTI_PROTO(namespace impl {
     template <typename T, typename U>
     class fir_filter : public kfr::fir_filter<T, U>
     {
@@ -42,7 +45,7 @@ CMT_MULTI_PROTO(namespace impl {
 } // namespace impl
 )
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 namespace impl
 {
@@ -66,9 +69,9 @@ template class fir_filter<float, complex<float>>;
 template class fir_filter<double, complex<double>>;
 
 } // namespace impl
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
-#ifdef CMT_MULTI_NEEDS_GATE
+#ifdef KFR_MULTI_NEEDS_GATE
 
 template <typename T, typename U>
 void fir_filter<T, U>::process_buffer(U* dest, const U* src, size_t size)
@@ -90,3 +93,5 @@ template class fir_filter<double, complex<double>>;
 #endif
 
 } // namespace kfr
+
+#endif

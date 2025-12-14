@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -25,5 +25,5 @@
  */
 #pragma once
 
-#include "../cometa/memory.hpp"
+#include "../meta/memory.hpp"
 #include "../simd/types.hpp"

@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -29,17 +29,18 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 /**
  * @brief Returns the absolute value of x.
+ * @remarks Supports integer and floating-point numbers, scalars, and vec<>.
  */
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_INTRINSIC T1 abs(const T1& x)
 {
-    return intrinsics::abs(x);
+    return intr::abs(x);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 } // namespace kfr

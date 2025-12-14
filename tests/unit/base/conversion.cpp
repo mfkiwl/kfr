@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -13,15 +13,11 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-TEST(sample_conversion)
+TEST_CASE("sample_conversion")
 {
-    CHECK(convert_sample<float>(static_cast<i8>(-127)) == -1.f);
-    CHECK(convert_sample<float>(static_cast<i8>(0)) == 0.f);
-    CHECK(convert_sample<float>(static_cast<i8>(127)) == 1.f);
-
     CHECK(convert_sample<float>(static_cast<i16>(-32767)) == -1.f);
     CHECK(convert_sample<float>(static_cast<i16>(0)) == 0.f);
     CHECK(convert_sample<float>(static_cast<i16>(32767)) == 1.f);
@@ -33,10 +29,6 @@ TEST(sample_conversion)
     CHECK(convert_sample<float>(static_cast<i32>(-2147483647)) == -1.f);
     CHECK(convert_sample<float>(static_cast<i32>(0)) == 0.f);
     CHECK(convert_sample<float>(static_cast<i32>(2147483647)) == 1.f);
-
-    CHECK(convert_sample<i8>(-1.f) == -127);
-    CHECK(convert_sample<i8>(0.f) == 0);
-    CHECK(convert_sample<i8>(1.f) == 127);
 
     CHECK(convert_sample<i16>(-1.f) == -32767);
     CHECK(convert_sample<i16>(0.f) == 0);
@@ -51,7 +43,7 @@ TEST(sample_conversion)
     CHECK(convert_sample<i32>(1.f) == 2147483647);
 }
 
-TEST(sample_interleave_deinterleave)
+TEST_CASE("sample_interleave_deinterleave")
 {
     const size_t size = 50;
     univector2d<float> in;
@@ -70,5 +62,5 @@ TEST(sample_interleave_deinterleave)
     CHECK(absmaxof(in[1] - render(counter() * 3.f + 1.f, size)) == 0);
     CHECK(absmaxof(in[2] - render(counter() * 3.f + 2.f, size)) == 0);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

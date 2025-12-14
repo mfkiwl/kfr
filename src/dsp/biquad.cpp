@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -23,19 +23,22 @@
   disclosing the source code of your own applications.
   See https://www.kfrlib.com for details.
  */
+#include <kfr/cident.h>
+#if !defined KFR_SKIP_IF_NON_X86 || defined(KFR_ARCH_X86)
+
 #include <kfr/multiarch.h>
 #include <kfr/dsp/biquad.hpp>
 
 namespace kfr
 {
 
-CMT_MULTI_PROTO(namespace impl {
+KFR_MULTI_PROTO(namespace impl {
     template <typename T>
     expression_handle<T, 1> create_iir_filter(const iir_params<T>& params);
 } // namespace impl
 )
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 namespace impl
 {
@@ -47,14 +50,14 @@ expression_handle<T, 1> create_iir_filter(const iir_params<T>& params)
 template expression_handle<float, 1> create_iir_filter<float>(const iir_params<float>& params);
 template expression_handle<double, 1> create_iir_filter<double>(const iir_params<double>& params);
 } // namespace impl
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
-#ifdef CMT_MULTI_NEEDS_GATE
+#ifdef KFR_MULTI_NEEDS_GATE
 
 template <typename T>
 iir_filter<T>::iir_filter(const iir_params<T>& params)
 {
-    CMT_MULTI_GATE(this->filter_expr = ns::impl::create_iir_filter<T>(params));
+    KFR_MULTI_GATE(this->filter_expr = ns::impl::create_iir_filter<T>(params));
 }
 
 template iir_filter<float>::iir_filter(const iir_params<float>&);
@@ -63,3 +66,5 @@ template iir_filter<double>::iir_filter(const iir_params<double>&);
 #endif
 
 } // namespace kfr
+
+#endif

@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -55,32 +55,13 @@ int main(int argc, char** argv)
         }
     }
 
-    std::vector<Speaker> speakers;
-    switch (channel_number)
+    if (channel_number < 1 || channel_number > 8)
     {
-    case 1:
-        speakers = { Speaker::Mono };
-        break;
-    case 2:
-        speakers = { Speaker::Left, Speaker::Right };
-        break;
-    case 3:
-        speakers = { Speaker::Left, Speaker::Right, Speaker::Center };
-        break;
-    case 4:
-        speakers = { Speaker::Left, Speaker::Right, Speaker::LeftSurround, Speaker::RightSurround };
-        break;
-    case 5:
-        speakers = { Speaker::Left, Speaker::Right, Speaker::Center, Speaker::LeftSurround,
-                     Speaker::RightSurround };
-        break;
-    case 6:
-        speakers = { Speaker::Left,         Speaker::Right,         Speaker::Center,
-                     Speaker::LeftSurround, Speaker::RightSurround, Speaker::Lfe };
-        break;
+        println("Unsupported number of channels: ", channel_number);
+        return 1;
     }
 
-    ebu_r128<float> loudness(48000, speakers);
+    ebu_r128<float> loudness(48000, arrangement_speakers(arrangement_for_channels(channel_number)));
 
     float M, S, I, RL, RH;
     float maxM = -HUGE_VALF, maxS = -HUGE_VALF;

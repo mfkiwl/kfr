@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -24,11 +24,11 @@
   See https://www.kfrlib.com for details.
  */
 #pragma once
-#include "../cometa/string.hpp"
+#include "../meta/string.hpp"
 #include "../simd/vec.hpp"
 #include <cstdlib>
 
-#ifdef CMT_OS_WIN
+#ifdef KFR_OS_WIN
 #include <direct.h>
 #define cross_getcwd _getcwd
 #else
@@ -40,9 +40,9 @@ namespace kfr
 {
 namespace internal_generic
 {
-CMT_PRAGMA_GNU(GCC diagnostic push)
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wdeprecated-declarations")
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wunused-result")
+KFR_PRAGMA_GNU(GCC diagnostic push)
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wdeprecated-declarations")
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wunused-result")
 
 template <int = 0>
 void python(const std::string& name, const std::string& code)
@@ -50,10 +50,10 @@ void python(const std::string& name, const std::string& code)
     std::string filename;
     {
         char curdir[1024];
-        (void)cross_getcwd(curdir, (int)arraysize(curdir));
+        (void)cross_getcwd(curdir, (int)std::size(curdir));
         filename = curdir;
     }
-#ifdef CMT_OS_WIN
+#ifdef KFR_OS_WIN
     const char* slash = "\\";
 #else
     const char* slash = "/";
@@ -63,21 +63,19 @@ void python(const std::string& name, const std::string& code)
     FILE* f = fopen(filename.c_str(), "w");
     fwrite(code.c_str(), 1, code.size(), f);
     fclose(f);
-#ifndef CMT_OS_MOBILE
+#ifndef KFR_OS_MOBILE
     (void)std::system(("python \"" + filename + "\"").c_str());
 #endif
 }
-CMT_PRAGMA_GNU(GCC diagnostic pop)
+KFR_PRAGMA_GNU(GCC diagnostic pop)
 
-template <typename T, KFR_ENABLE_IF(std::is_floating_point_v<T>)>
+template <typename T>
 inline T flush_to_zero(T value)
 {
-    return std::isfinite(value) ? value : 0;
-}
-template <typename T, KFR_ENABLE_IF(!std::is_floating_point_v<T>)>
-inline T flush_to_zero(T value)
-{
-    return static_cast<double>(value);
+    if constexpr (std::is_floating_point_v<T>)
+        return std::isfinite(value) ? value : 0;
+    else
+        return static_cast<double>(value);
 }
 } // namespace internal_generic
 
@@ -126,7 +124,7 @@ void plot_show(const std::string& name, const T& x, const std::string& options =
     std::string ss;
     ss += python_prologue() + "data = [\n";
     for (size_t i = 0; i < array.size(); i++)
-        ss += as_string(cometa::fmt<'g', 20, 17>(internal_generic::flush_to_zero(array[i])), ",\n");
+        ss += as_string(kfr::fmt<'g', 20, 17>(internal_generic::flush_to_zero(array[i])), ",\n");
     ss += "]\n";
 
     ss += "dspplot.plot(" + concat_args("data", options) + ")\n";
@@ -156,7 +154,7 @@ void perfplot_show(const std::string& name, T1&& data, T2&& labels, const std::s
         auto subarray = make_array_ref(array[i]);
         ss += "[\n";
         for (size_t i = 0; i < subarray.size(); i++)
-            ss += as_string("    ", cometa::fmt<'g', 20, 17>(subarray[i]), ",\n");
+            ss += as_string("    ", kfr::fmt<'g', 20, 17>(subarray[i]), ",\n");
         ss += "],";
     }
     ss += "]\n";

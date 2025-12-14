@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -31,7 +31,7 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 /**
@@ -44,7 +44,7 @@ auto unitimpulse()
         [](shape<1> index, auto x)
         {
             vec_shape<T, decltype(x)::value> sh{};
-            if (CMT_UNLIKELY(index[0] == 0))
+            if (KFR_UNLIKELY(index[0] == 0))
                 return onoff(sh);
             else
                 return zerovector(sh);
@@ -62,7 +62,7 @@ auto jaehne_arg(size_t size)
  * Generates the sine with linearly increasing frequency from 0hz to nyquist frequency.
  */
 template <typename T = fbase>
-auto jaehne(identity<T> magn, size_t size)
+auto jaehne(std::type_identity_t<T> magn, size_t size)
 {
     return magn * sin(jaehne_arg<T>(size));
 }
@@ -80,9 +80,9 @@ auto swept_arg(size_t size)
  * Generates the sine with logarithmically increasing frequency from 0hz to nyquist frequency.
  */
 template <typename T = fbase>
-auto swept(identity<T> magn, size_t size)
+auto swept(std::type_identity_t<T> magn, size_t size)
 {
     return magn * sin(swept_arg<T>(size));
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

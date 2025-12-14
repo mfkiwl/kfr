@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -35,9 +35,9 @@
 #include "cache.hpp"
 #include "fft.hpp"
 
-CMT_PRAGMA_GNU(GCC diagnostic push)
-#if CMT_HAS_WARNING("-Wshadow")
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wshadow")
+KFR_PRAGMA_GNU(GCC diagnostic push)
+#if KFR_HAS_WARNING("-Wshadow")
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wshadow")
 #endif
 
 namespace kfr
@@ -51,16 +51,16 @@ univector<T> convolve(const univector_ref<const T>& src1, const univector_ref<co
 }
 
 /// @brief Convolution
-template <typename T1, typename T2, univector_tag Tag1, univector_tag Tag2,
-          CMT_ENABLE_IF(std::is_same_v<std::remove_const_t<T1>, std::remove_const_t<T2>>)>
+template <typename T1, typename T2, univector_tag Tag1, univector_tag Tag2>
+    requires(std::is_same_v<std::remove_const_t<T1>, std::remove_const_t<T2>>)
 univector<std::remove_const_t<T1>> convolve(const univector<T1, Tag1>& src1, const univector<T2, Tag2>& src2)
 {
     return internal_generic::convolve(src1.slice(), src2.slice());
 }
 
 /// @brief Correlation
-template <typename T1, typename T2, univector_tag Tag1, univector_tag Tag2,
-          CMT_ENABLE_IF(std::is_same_v<std::remove_const_t<T1>, std::remove_const_t<T2>>)>
+template <typename T1, typename T2, univector_tag Tag1, univector_tag Tag2>
+    requires(std::is_same_v<std::remove_const_t<T1>, std::remove_const_t<T2>>)
 univector<std::remove_const_t<T1>> correlate(const univector<T1, Tag1>& src1, const univector<T2, Tag2>& src2)
 {
     return internal_generic::convolve(src1.slice(), src2.slice(), true);
@@ -148,4 +148,4 @@ protected:
 };
 
 } // namespace kfr
-CMT_PRAGMA_GNU(GCC diagnostic pop)
+KFR_PRAGMA_GNU(GCC diagnostic pop)

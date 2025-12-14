@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -33,19 +33,21 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, size_t samples, univector_tag Tag = samples>
 struct delay_state
 {
-    template <size_t S2 = samples, KFR_ENABLE_IF(S2 == Tag)>
-    delay_state() : data({ 0 }), cursor(0)
+    delay_state()
+        requires(samples == Tag)
+        : data({ 0 }), cursor(0)
     {
     }
 
-    template <size_t S2 = samples, KFR_ENABLE_IF(S2 != Tag)>
-    delay_state() : data(samples), cursor(0)
+    delay_state()
+        requires(samples != Tag)
+        : data(samples), cursor(0)
     {
     }
 
@@ -81,7 +83,8 @@ struct expression_delay : expression_with_arguments<E>, public expression_traits
     {
     }
 
-    template <size_t N, KFR_ENABLE_IF(N <= delay)>
+    template <size_t N>
+        requires(N <= delay)
     friend KFR_INTRINSIC vec<T, N> get_elements(const expression_delay& self, shape<1> index,
                                                 axis_params<0, N> sh)
     {
@@ -101,7 +104,8 @@ struct expression_delay : expression_with_arguments<E>, public expression_traits
         self.state->data.ringbuf_write(self.state->cursor, in);
         return out;
     }
-    template <size_t N, KFR_ENABLE_IF(N > delay)>
+    template <size_t N>
+        requires(N > delay)
     friend vec<T, N> get_elements(const expression_delay& self, shape<1> index, axis_params<0, N> sh)
     {
         vec<T, delay> out;
@@ -210,11 +214,11 @@ template <size_t samples, typename T, typename E1, univector_tag STag>
 template <typename T, typename E1>
 KFR_INTRINSIC expression_short_fir<2, T, expression_value_type<E1>, E1> fracdelay(E1&& e1, T delay)
 {
-    if (CMT_UNLIKELY(delay < 0))
+    if (KFR_UNLIKELY(delay < 0))
         delay = 0;
     univector<T, 2> taps({ 1 - delay, delay });
     return expression_short_fir<2, T, expression_value_type<E1>, E1>(
         std::forward<E1>(e1), short_fir_state<2, T, expression_value_type<E1>>{ taps });
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

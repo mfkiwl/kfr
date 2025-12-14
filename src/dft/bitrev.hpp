@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -36,28 +36,35 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 
 constexpr inline static bool fft_reorder_aligned = false;
 
-constexpr inline static size_t bitrev_table_log2N = ilog2(arraysize(data::bitrev_table));
+constexpr inline static size_t bitrev_table_log2N = ilog2(std::size(data::bitrev_table));
 
 template <size_t Bits>
-CMT_GNU_CONSTEXPR inline u32 bitrev_using_table(u32 x)
+inline u32 bitrev_using_table(u32 x)
 {
+#ifdef KFR_ARCH_NEON
+    return __builtin_bitreverse32(x) >> (32 - Bits);
+#else
     if constexpr (Bits > bitrev_table_log2N)
         return bitreverse<Bits>(x);
 
     return data::bitrev_table[x] >> (bitrev_table_log2N - Bits);
+#endif
 }
 
 template <bool use_table>
-CMT_GNU_CONSTEXPR inline u32 bitrev_using_table(u32 x, size_t bits, cbool_t<use_table>)
+inline u32 bitrev_using_table(u32 x, size_t bits, cbool_t<use_table>)
 {
+#ifdef KFR_ARCH_NEON
+    return __builtin_bitreverse32(x) >> (32 - bits);
+#else
     if constexpr (use_table)
     {
         return data::bitrev_table[x] >> (bitrev_table_log2N - bits);
@@ -66,10 +73,17 @@ CMT_GNU_CONSTEXPR inline u32 bitrev_using_table(u32 x, size_t bits, cbool_t<use_
     {
         return bitreverse<32>(x) >> (32 - bits);
     }
+#endif
 }
 
-CMT_GNU_CONSTEXPR inline u32 dig4rev_using_table(u32 x, size_t bits)
+inline u32 dig4rev_using_table(u32 x, size_t bits)
 {
+#ifdef KFR_ARCH_NEON
+    x = __builtin_bitreverse32(x);
+    x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
+    x = x >> (32 - bits);
+    return x;
+#else
     if (bits > bitrev_table_log2N)
     {
         if (bits <= 16)
@@ -82,6 +96,7 @@ CMT_GNU_CONSTEXPR inline u32 dig4rev_using_table(u32 x, size_t bits)
     x = (((x & 0xaaaaaaaa) >> 1) | ((x & 0x55555555) << 1));
     x = x >> (bitrev_table_log2N - bits);
     return x;
+#endif
 }
 
 template <size_t log2n, size_t bitrev, typename T>
@@ -99,7 +114,7 @@ KFR_INTRINSIC void fft_reorder_swap(T* inout, size_t i)
 template <size_t log2n, size_t bitrev, typename T>
 KFR_INTRINSIC void fft_reorder_swap_two(T* inout, size_t i, size_t j)
 {
-    CMT_ASSUME(i != j);
+    KFR_ASSUME(i != j);
     using cxx           = cvec<T, 16>;
     constexpr size_t N  = 1 << log2n;
     constexpr size_t N4 = 2 * N / 4;
@@ -116,7 +131,7 @@ KFR_INTRINSIC void fft_reorder_swap_two(T* inout, size_t i, size_t j)
 template <size_t log2n, size_t bitrev, typename T>
 KFR_INTRINSIC void fft_reorder_swap(T* inout, size_t i, size_t j)
 {
-    CMT_ASSUME(i != j);
+    KFR_ASSUME(i != j);
     using cxx           = cvec<T, 16>;
     constexpr size_t N  = 1 << log2n;
     constexpr size_t N4 = 2 * N / 4;
@@ -325,7 +340,7 @@ KFR_INTRINSIC void cwrite_reordered(T* out, const cvec<T, 16>& value, size_t N4,
 template <typename T, bool use_br2>
 KFR_INTRINSIC void fft_reorder_swap_n4(T* inout, size_t i, size_t j, size_t N4, cbool_t<use_br2>)
 {
-    CMT_ASSUME(i != j);
+    KFR_ASSUME(i != j);
     const cvec<T, 16> vi = cread_group<4, 4, fft_reorder_aligned>(ptr_cast<complex<T>>(inout + i), N4);
     const cvec<T, 16> vj = cread_group<4, 4, fft_reorder_aligned>(ptr_cast<complex<T>>(inout + j), N4);
     cwrite_reordered(inout + j, vi, N4, cbool_t<use_br2>());
@@ -405,7 +420,7 @@ KFR_INTRINSIC void fft_reorder(complex<T>* inout, size_t log2n, cfalse_t use_br2
     T* io                  = ptr_cast<T>(inout);
 
     size_t i = 0;
-    CMT_PRAGMA_CLANG(clang loop unroll_count(2))
+    KFR_PRAGMA_CLANG(clang loop unroll_count(2))
     for (; i < iend;)
     {
         size_t j = dig4rev_using_table(static_cast<u32>(i >> 3), log2n - 4) << 3;
@@ -415,7 +430,7 @@ KFR_INTRINSIC void fft_reorder(complex<T>* inout, size_t log2n, cfalse_t use_br2
         i += istep * 4;
     }
     iend += N16;
-    CMT_PRAGMA_CLANG(clang loop unroll_count(2))
+    KFR_PRAGMA_CLANG(clang loop unroll_count(2))
     for (; i < iend;)
     {
         size_t j = dig4rev_using_table(static_cast<u32>(i >> 3), log2n - 4) << 3;
@@ -430,7 +445,7 @@ KFR_INTRINSIC void fft_reorder(complex<T>* inout, size_t log2n, cfalse_t use_br2
         i += istep * 3;
     }
     iend += N16;
-    CMT_PRAGMA_CLANG(clang loop unroll_count(2))
+    KFR_PRAGMA_CLANG(clang loop unroll_count(2))
     for (; i < iend;)
     {
         size_t j = dig4rev_using_table(static_cast<u32>(i >> 3), log2n - 4) << 3;
@@ -450,7 +465,7 @@ KFR_INTRINSIC void fft_reorder(complex<T>* inout, size_t log2n, cfalse_t use_br2
         i += istep * 2;
     }
     iend += N16;
-    CMT_PRAGMA_CLANG(clang loop unroll_count(2))
+    KFR_PRAGMA_CLANG(clang loop unroll_count(2))
     for (; i < iend;)
     {
         size_t j = dig4rev_using_table(static_cast<u32>(i >> 3), log2n - 4) << 3;
@@ -475,6 +490,6 @@ KFR_INTRINSIC void fft_reorder(complex<T>* inout, size_t log2n, cfalse_t use_br2
         i += istep;
     }
 }
-} // namespace intrinsics
-} // namespace CMT_ARCH_NAME
+} // namespace intr
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

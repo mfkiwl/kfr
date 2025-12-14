@@ -5,13 +5,14 @@
 set(
     KFR_HDR
     ${PROJECT_SOURCE_DIR}/include/kfr/all.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/audio.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/base.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/dft.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/dsp.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/except.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/io.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/math.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/runtime.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/version.hpp
@@ -20,6 +21,10 @@ set(
     ${PROJECT_SOURCE_DIR}/include/kfr/config.h
     ${PROJECT_SOURCE_DIR}/include/kfr/kfr.h
     ${PROJECT_SOURCE_DIR}/include/kfr/multiarch.h
+    ${PROJECT_SOURCE_DIR}/include/kfr/audio/data.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/audio/decoder.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/audio/encoder.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/audio/io.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/base/basic_expressions.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/base/conversion.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/base/endianness.hpp
@@ -43,17 +48,6 @@ set(
     ${PROJECT_SOURCE_DIR}/include/kfr/base/transpose.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/base/univector.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/base/impl/static_array.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/array.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/cstring.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/ctti.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/function.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/memory.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/named_arg.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/numeric.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/range.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/result.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/string.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/cometa/tuple.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/dft/cache.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/dft/convolution.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/dft/fft.hpp
@@ -102,6 +96,17 @@ set(
     ${PROJECT_SOURCE_DIR}/include/kfr/math/impl/sin_cos.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/math/impl/sqrt.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/math/impl/tan.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/array.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/cstring.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/ctti.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/function.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/memory.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/named_arg.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/numeric.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/range.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/result.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/string.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/meta/tuple.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/runtime/cpuid.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/runtime/cpuid_auto.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/abs.hpp
@@ -127,8 +132,8 @@ set(
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/vec.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/abs.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/backend.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/backend_clang.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/backend_generic.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/backend_vecext.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/basicoperators_clang.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/basicoperators_complex.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/basicoperators_generic.hpp
@@ -145,11 +150,12 @@ set(
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/specialconstants.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/specializations.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/intrinsics.h
-    ${PROJECT_SOURCE_DIR}/include/kfr/testo/assert.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/testo/comparison.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/testo/console_colors.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/testo/double_double.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/testo/testo.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/test/assert.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/test/comparison.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/test/double_double.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/test/test.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/thirdparty/catch/catch_amalgamated.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/thirdparty/expected/expected.hpp
 )
 
     
@@ -178,8 +184,8 @@ set(
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/vec.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/abs.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/backend.hpp
-    ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/backend_clang.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/backend_generic.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/backend_vecext.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/basicoperators_clang.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/basicoperators_complex.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/simd/impl/basicoperators_generic.hpp
@@ -287,6 +293,15 @@ set(
 
     
 set(
+    KFR_AUDIO_HDR
+    ${PROJECT_SOURCE_DIR}/include/kfr/audio/data.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/audio/decoder.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/audio/encoder.hpp
+    ${PROJECT_SOURCE_DIR}/include/kfr/audio/io.hpp
+)
+
+    
+set(
     KFR_RUNTIME_HDR
     ${PROJECT_SOURCE_DIR}/include/kfr/runtime/cpuid.hpp
     ${PROJECT_SOURCE_DIR}/include/kfr/runtime/cpuid_auto.hpp
@@ -309,7 +324,9 @@ set(
     KFR_DSP_SRC
     ${PROJECT_SOURCE_DIR}/src/dsp/biquad.cpp
     ${PROJECT_SOURCE_DIR}/src/dsp/fir.cpp
+    ${PROJECT_SOURCE_DIR}/src/dsp/iir_design.cpp
     ${PROJECT_SOURCE_DIR}/src/dsp/sample_rate_conversion.cpp
+    ${PROJECT_SOURCE_DIR}/src/dsp/speaker.cpp
     ${PROJECT_SOURCE_DIR}/src/dsp/version.cpp
 )
 
@@ -317,13 +334,32 @@ set(
 set(
     KFR_IO_SRC
     ${PROJECT_SOURCE_DIR}/src/io/audiofile-impl.cpp
+    ${PROJECT_SOURCE_DIR}/src/io/file.cpp
     ${PROJECT_SOURCE_DIR}/src/io/version.cpp
 )
 
     
 set(
+    KFR_AUDIO_SRC
+    ${PROJECT_SOURCE_DIR}/src/audio/aiff_coder.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/caff_coder.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/data.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/decoder.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/encoder.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/flac_coder.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/io.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/mf_coder.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/mp3_coder.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/raw_coder.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/version.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/w64_coder.cpp
+    ${PROJECT_SOURCE_DIR}/src/audio/wave_coder.cpp
+)
+
+    
+set(
     KFR_UNITTEST_SRC
-    ${PROJECT_SOURCE_DIR}/tests/unit/cometa.cpp
+    ${PROJECT_SOURCE_DIR}/tests/unit/meta.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/base/base.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/base/basic_expressions.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/base/conversion.cpp
@@ -342,6 +378,7 @@ set(
     ${PROJECT_SOURCE_DIR}/tests/unit/base/univector.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/dsp/biquad.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/dsp/biquad_design.cpp
+    ${PROJECT_SOURCE_DIR}/tests/unit/dsp/dcremove.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/dsp/delay.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/dsp/dsp.cpp
     ${PROJECT_SOURCE_DIR}/tests/unit/dsp/ebu.cpp

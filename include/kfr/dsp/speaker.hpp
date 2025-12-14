@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -25,10 +25,15 @@
  */
 #pragma once
 
+#include <span>
+#include <array>
+
 namespace kfr
 {
 
-enum class Speaker : int
+/// @brief Speaker types (positions)
+/// Matches VST3 definitions
+enum class speaker_type : int
 {
     None          = -1,
     Mono          = 0,
@@ -60,7 +65,9 @@ enum class Speaker : int
     Lfe2          = 19
 };
 
-enum class SpeakerArrangement : int
+/// @brief Predefined speaker arrangements
+/// Matches VST3 definitions
+enum class speaker_arrangement : int
 {
     None           = -1,
     Mono           = 0,
@@ -93,5 +100,24 @@ enum class SpeakerArrangement : int
     Music81        = 27,
     Arr102         = 28
 };
+
+using Speaker [[deprecated("Use speaker_type instead")]]                   = speaker_type;
+using SpeakerArrangement [[deprecated("Use speaker_arrangement instead")]] = speaker_arrangement;
+
+/**
+ * @brief Returns the canonical channel list for a speaker arrangement.
+ *
+ * Maps a speaker_arrangement to an ordered, immutable sequence of speaker_type values.
+ * The returned span references static storage valid for the program lifetime and performs no allocations.
+ *
+ * @param arr The speaker arrangement to resolve.
+ * @return std::span<const speaker_type> Ordered channels for the arrangement, or an empty span if
+ * unsupported.
+ */
+std::span<const speaker_type> arrangement_speakers(speaker_arrangement arr) noexcept;
+
+/// @brief Returns a predefined speaker arrangement for a given number of channels
+/// If no predefined arrangement exists, returns speaker_arrangement::None
+speaker_arrangement arrangement_for_channels(size_t count) noexcept;
 
 } // namespace kfr

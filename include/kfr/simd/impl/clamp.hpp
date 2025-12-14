@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -26,10 +26,10 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 
 template <typename T>
@@ -49,7 +49,7 @@ KFR_INTRINSIC vec<T, N> clamp(const vec<T, N>& x, const vec<T, N>& hi)
 {
     return max(min(x, hi), zerovector<T, N>());
 }
-} // namespace intrinsics
+} // namespace intr
 KFR_I_FN(clamp)
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

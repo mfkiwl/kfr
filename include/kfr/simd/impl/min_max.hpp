@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -29,13 +29,13 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 
-#if defined CMT_ARCH_SSE2 && defined KFR_NATIVE_INTRINSICS
+#if defined KFR_ARCH_SSE2 && defined KFR_NATIVE_INTRINSICS
 
 KFR_INTRINSIC f32sse min(const f32sse& x, const f32sse& y) { return _mm_min_ps(x.v, y.v); }
 KFR_INTRINSIC f64sse min(const f64sse& x, const f64sse& y) { return _mm_min_pd(x.v, y.v); }
@@ -47,7 +47,7 @@ KFR_INTRINSIC f64sse max(const f64sse& x, const f64sse& y) { return _mm_max_pd(x
 KFR_INTRINSIC u8sse max(const u8sse& x, const u8sse& y) { return _mm_max_epu8(x.v, y.v); }
 KFR_INTRINSIC i16sse max(const i16sse& x, const i16sse& y) { return _mm_max_epi16(x.v, y.v); }
 
-#if defined CMT_ARCH_AVX2
+#if defined KFR_ARCH_AVX2
 KFR_INTRINSIC u8avx min(const u8avx& x, const u8avx& y) { return _mm256_min_epu8(x.v, y.v); }
 KFR_INTRINSIC i16avx min(const i16avx& x, const i16avx& y) { return _mm256_min_epi16(x.v, y.v); }
 KFR_INTRINSIC i8avx min(const i8avx& x, const i8avx& y) { return _mm256_min_epi8(x.v, y.v); }
@@ -64,7 +64,7 @@ KFR_INTRINSIC u32avx max(const u32avx& x, const u32avx& y) { return _mm256_max_e
 
 #endif
 
-#if defined CMT_ARCH_AVX512
+#if defined KFR_ARCH_AVX512
 KFR_INTRINSIC f32avx512 min(const f32avx512& x, const f32avx512& y) { return _mm512_min_ps(x.v, y.v); }
 KFR_INTRINSIC f64avx512 min(const f64avx512& x, const f64avx512& y) { return _mm512_min_pd(x.v, y.v); }
 KFR_INTRINSIC f32avx512 max(const f32avx512& x, const f32avx512& y) { return _mm512_max_ps(x.v, y.v); }
@@ -107,14 +107,14 @@ KFR_INTRINSIC i64avx max(const i64avx& x, const i64avx& y) { return select(x > y
 KFR_INTRINSIC u64avx max(const u64avx& x, const u64avx& y) { return select(x > y, x, y); }
 #endif
 
-#if defined CMT_ARCH_AVX
+#if defined KFR_ARCH_AVX
 KFR_INTRINSIC f32avx min(const f32avx& x, const f32avx& y) { return _mm256_min_ps(x.v, y.v); }
 KFR_INTRINSIC f64avx min(const f64avx& x, const f64avx& y) { return _mm256_min_pd(x.v, y.v); }
 KFR_INTRINSIC f32avx max(const f32avx& x, const f32avx& y) { return _mm256_max_ps(x.v, y.v); }
 KFR_INTRINSIC f64avx max(const f64avx& x, const f64avx& y) { return _mm256_max_pd(x.v, y.v); }
 #endif
 
-#if defined CMT_ARCH_SSE41
+#if defined KFR_ARCH_SSE41
 KFR_INTRINSIC i8sse min(const i8sse& x, const i8sse& y) { return _mm_min_epi8(x.v, y.v); }
 KFR_INTRINSIC u16sse min(const u16sse& x, const u16sse& y) { return _mm_min_epu16(x.v, y.v); }
 KFR_INTRINSIC i32sse min(const i32sse& x, const i32sse& y) { return _mm_min_epi32(x.v, y.v); }
@@ -140,7 +140,7 @@ KFR_INTRINSIC u32sse max(const u32sse& x, const u32sse& y) { return select(x > y
 KFR_HANDLE_ALL_SIZES_2(min)
 KFR_HANDLE_ALL_SIZES_2(max)
 
-#elif defined CMT_ARCH_NEON && defined KFR_NATIVE_INTRINSICS
+#elif defined KFR_ARCH_NEON && defined KFR_NATIVE_INTRINSICS
 
 KFR_INTRINSIC i8neon min(const i8neon& x, const i8neon& y) { return vminq_s8(x.v, y.v); }
 KFR_INTRINSIC u8neon min(const u8neon& x, const u8neon& y) { return vminq_u8(x.v, y.v); }
@@ -162,13 +162,88 @@ KFR_INTRINSIC u64neon max(const u64neon& x, const u64neon& y) { return select(x 
 
 KFR_INTRINSIC f32neon min(const f32neon& x, const f32neon& y) { return vminq_f32(x.v, y.v); }
 KFR_INTRINSIC f32neon max(const f32neon& x, const f32neon& y) { return vmaxq_f32(x.v, y.v); }
-#if defined CMT_ARCH_NEON64
+#if defined KFR_ARCH_NEON64
 KFR_INTRINSIC f64neon min(const f64neon& x, const f64neon& y) { return vminq_f64(x.v, y.v); }
 KFR_INTRINSIC f64neon max(const f64neon& x, const f64neon& y) { return vmaxq_f64(x.v, y.v); }
 #else
 KFR_INTRINSIC f64neon min(const f64neon& x, const f64neon& y) { return select(x < y, x, y); }
 KFR_INTRINSIC f64neon max(const f64neon& x, const f64neon& y) { return select(x > y, x, y); }
 #endif
+
+KFR_HANDLE_ALL_SIZES_2(min)
+KFR_HANDLE_ALL_SIZES_2(max)
+
+#elif KFR_ARCH_RVV && defined KFR_NATIVE_INTRINSICS
+
+KFR_INTRINSIC i8rvv min(const i8rvv& x, const i8rvv& y) { return __riscv_vmin_vv_i8m1(x.v, y.v, i8rvv::SN); }
+KFR_INTRINSIC u8rvv min(const u8rvv& x, const u8rvv& y) { return __riscv_vminu_vv_u8m1(x.v, y.v, u8rvv::SN); }
+KFR_INTRINSIC i16rvv min(const i16rvv& x, const i16rvv& y)
+{
+    return __riscv_vmin_vv_i16m1(x.v, y.v, i16rvv::SN);
+}
+KFR_INTRINSIC u16rvv min(const u16rvv& x, const u16rvv& y)
+{
+    return __riscv_vminu_vv_u16m1(x.v, y.v, u16rvv::SN);
+}
+KFR_INTRINSIC i32rvv min(const i32rvv& x, const i32rvv& y)
+{
+    return __riscv_vmin_vv_i32m1(x.v, y.v, i32rvv::SN);
+}
+KFR_INTRINSIC u32rvv min(const u32rvv& x, const u32rvv& y)
+{
+    return __riscv_vminu_vv_u32m1(x.v, y.v, u32rvv::SN);
+}
+KFR_INTRINSIC i64rvv min(const i64rvv& x, const i64rvv& y)
+{
+    return __riscv_vmin_vv_i64m1(x.v, y.v, i64rvv::SN);
+}
+KFR_INTRINSIC u64rvv min(const u64rvv& x, const u64rvv& y)
+{
+    return __riscv_vminu_vv_u64m1(x.v, y.v, u64rvv::SN);
+}
+KFR_INTRINSIC f32rvv min(const f32rvv& x, const f32rvv& y)
+{
+    return __riscv_vfmin_vv_f32m1(x.v, y.v, f32rvv::SN);
+}
+KFR_INTRINSIC f64rvv min(const f64rvv& x, const f64rvv& y)
+{
+    return __riscv_vfmin_vv_f64m1(x.v, y.v, f64rvv::SN);
+}
+
+KFR_INTRINSIC i8rvv max(const i8rvv& x, const i8rvv& y) { return __riscv_vmax_vv_i8m1(x.v, y.v, i8rvv::SN); }
+KFR_INTRINSIC u8rvv max(const u8rvv& x, const u8rvv& y) { return __riscv_vmaxu_vv_u8m1(x.v, y.v, u8rvv::SN); }
+KFR_INTRINSIC i16rvv max(const i16rvv& x, const i16rvv& y)
+{
+    return __riscv_vmax_vv_i16m1(x.v, y.v, i16rvv::SN);
+}
+KFR_INTRINSIC u16rvv max(const u16rvv& x, const u16rvv& y)
+{
+    return __riscv_vmaxu_vv_u16m1(x.v, y.v, u16rvv::SN);
+}
+KFR_INTRINSIC i32rvv max(const i32rvv& x, const i32rvv& y)
+{
+    return __riscv_vmax_vv_i32m1(x.v, y.v, i32rvv::SN);
+}
+KFR_INTRINSIC u32rvv max(const u32rvv& x, const u32rvv& y)
+{
+    return __riscv_vmaxu_vv_u32m1(x.v, y.v, u32rvv::SN);
+}
+KFR_INTRINSIC i64rvv max(const i64rvv& x, const i64rvv& y)
+{
+    return __riscv_vmax_vv_i64m1(x.v, y.v, i64rvv::SN);
+}
+KFR_INTRINSIC u64rvv max(const u64rvv& x, const u64rvv& y)
+{
+    return __riscv_vmaxu_vv_u64m1(x.v, y.v, u64rvv::SN);
+}
+KFR_INTRINSIC f32rvv max(const f32rvv& x, const f32rvv& y)
+{
+    return __riscv_vfmax_vv_f32m1(x.v, y.v, f32rvv::SN);
+}
+KFR_INTRINSIC f64rvv max(const f64rvv& x, const f64rvv& y)
+{
+    return __riscv_vfmax_vv_f64m1(x.v, y.v, f64rvv::SN);
+}
 
 KFR_HANDLE_ALL_SIZES_2(min)
 KFR_HANDLE_ALL_SIZES_2(max)
@@ -227,10 +302,10 @@ KFR_HANDLE_SCALAR(min)
 KFR_HANDLE_SCALAR(max)
 KFR_HANDLE_SCALAR(absmin)
 KFR_HANDLE_SCALAR(absmax)
-} // namespace intrinsics
+} // namespace intr
 KFR_I_FN(min)
 KFR_I_FN(max)
 KFR_I_FN(absmin)
 KFR_I_FN(absmax)
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -31,9 +31,9 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
-namespace intrinsics
+namespace intr
 {
 
 template <typename T, size_t N>
@@ -107,7 +107,7 @@ KFR_COMPLEX_OP_CVT(band)
 KFR_COMPLEX_OP_CVT(bxor)
 KFR_COMPLEX_OP_CVT(bor)
 
-} // namespace intrinsics
-} // namespace CMT_ARCH_NAME
+} // namespace intr
+} // namespace KFR_ARCH_NAME
 
 } // namespace kfr

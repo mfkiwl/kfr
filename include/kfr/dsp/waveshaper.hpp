@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename E1>
@@ -47,7 +47,7 @@ inline auto waveshaper_tanh(E1&& input, double saturation)
     return tanh(saturation * input) * (coth(saturation));
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> saturate_I(const T1& x)
 {
     const flt_type<T1> xx = -1 / (abs(static_cast<flt_type<T1>>(x)) + 1) + 1;
@@ -55,7 +55,7 @@ KFR_FUNCTION flt_type<T1> saturate_I(const T1& x)
 }
 KFR_FN(saturate_I)
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> saturate_II(const T1& x)
 {
     const flt_type<T1> xx = sqr(abs(static_cast<flt_type<T1>>(x)) + 1);
@@ -63,13 +63,13 @@ KFR_FUNCTION flt_type<T1> saturate_II(const T1& x)
 }
 KFR_FN(saturate_II)
 
-template <typename E1, KFR_ACCEPT_EXPRESSIONS(E1)>
+template <expression_argument E1>
 KFR_FUNCTION expression_function<fn::saturate_II, E1> saturate_I(E1&& x)
 {
     return { fn::saturate_I(), std::forward<E1>(x) };
 }
 
-template <typename E1, KFR_ACCEPT_EXPRESSIONS(E1)>
+template <expression_argument E1>
 KFR_FUNCTION expression_function<fn::saturate_II, E1> saturate_II(E1&& x)
 {
     return { fn::saturate_II(), std::forward<E1>(x) };
@@ -92,5 +92,5 @@ inline auto waveshaper_poly(E1&& input, fbase c1, fbase c3, Cs... cs)
 {
     return horner_odd(input, c1, c3, static_cast<fbase>(cs)...);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -10,10 +10,10 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-TEST(univector_assignment)
+TEST_CASE("univector_assignment")
 {
     univector<int> x = truncate(counter(), 10);
     CHECK(x.size() == 10u);
@@ -24,7 +24,7 @@ TEST(univector_assignment)
 }
 
 #ifdef KFR_USE_STD_ALLOCATION
-TEST(std_allocation)
+TEST_CASE("std_allocation")
 {
     univector<float> u;
     std::vector<float>& v = u;
@@ -40,5 +40,5 @@ TEST(std_allocation)
 }
 #endif
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

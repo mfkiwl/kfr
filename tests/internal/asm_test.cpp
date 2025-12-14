@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -15,14 +15,13 @@
 #include <kfr/dft/impl/fft-impl.hpp>
 #endif
 #include <kfr/io.hpp>
-#include <kfr/testo/console_colors.hpp>
 
 using namespace kfr;
 
-#ifdef CMT_COMPILER_MSVC
-#define KFR_PUBLIC CMT_PUBLIC_C CMT_DLL_EXPORT
+#ifdef KFR_COMPILER_MSVC
+#define KFR_PUBLIC KFR_PUBLIC_C KFR_DLL_EXPORT
 #else
-#define KFR_PUBLIC CMT_PUBLIC_C
+#define KFR_PUBLIC KFR_PUBLIC_C
 #endif
 
 #define TEST_ASM_8(fn, ty, MACRO)                                                                            \
@@ -105,13 +104,13 @@ using namespace kfr;
 #define GEN_arg(n, ty) arg##n
 
 #define TEST_ASM_MAKE_VECTOR(fn, ty, n)                                                                      \
-    KFR_PUBLIC void asm__test__##fn##__##ty##__##n(vec<ty, n>& r, CMT_GEN_LIST(n, GEN_arg_def, ty))          \
+    KFR_PUBLIC void asm__test__##fn##__##ty##__##n(vec<ty, n>& r, KFR_GEN_LIST(n, GEN_arg_def, ty))          \
     {                                                                                                        \
-        r = kfr::fn(CMT_GEN_LIST(n, GEN_arg, ty));                                                           \
+        r = kfr::fn(KFR_GEN_LIST(n, GEN_arg, ty));                                                           \
     }                                                                                                        \
     KFR_PUBLIC void asm__test__##fn##__##ty##__##n##__imm(vec<ty, n>& r)                                     \
     {                                                                                                        \
-        r = kfr::fn(CMT_GEN_LIST(n, GEN_ty, ty));                                                            \
+        r = kfr::fn(KFR_GEN_LIST(n, GEN_ty, ty));                                                            \
     }
 
 #define TEST_ASM_BROADCAST(fn, ty, n)                                                                        \
@@ -274,7 +273,7 @@ TEST_ASM_F(acos, TEST_ASM_VTY1_F)
 #ifdef HAVE_DFT
 
 #define TEST_FFT_SPEC(ty, size)                                                                              \
-    static intrinsics::fft_specialization<ty, size> fft__##ty##__##size(static_cast<size_t>(1 << size));     \
+    static intr::fft_specialization<ty, size> fft__##ty##__##size(static_cast<size_t>(1 << size));           \
     KFR_PUBLIC void asm__test__fft__##ty##__##size(complex<ty>* out, const complex<ty>* in, u8* temp)        \
     {                                                                                                        \
         fft__##ty##__##size.do_execute<false>(out, in, temp);                                                \
@@ -284,7 +283,7 @@ TEST_ASM_F(acos, TEST_ASM_VTY1_F)
         fft__##ty##__##size.do_execute<true>(out, in, temp);                                                 \
     }
 #define TEST_FFT_GEN(ty)                                                                                     \
-    static intrinsics::fft_stage_impl<ty, true, true> fft__##ty##__##size(static_cast<size_t>(65526));       \
+    static intr::fft_stage_impl<ty, true, true> fft__##ty##__##size(static_cast<size_t>(65526));             \
     KFR_PUBLIC void asm__test__fft__##ty##__gen(complex<ty>* out, const complex<ty>* in, u8* temp)           \
     {                                                                                                        \
         fft__##ty##__##size.do_execute<false>(out, in, temp);                                                \
@@ -313,7 +312,7 @@ namespace kfr
 {
 
 #ifdef KFR_SHOW_NOT_OPTIMIZED
-KFR_PUBLIC void not_optimized(const char* fn) CMT_NOEXCEPT { puts(fn); }
+KFR_PUBLIC void not_optimized(const char* fn) noexcept { puts(fn); }
 #endif
 
 } // namespace kfr

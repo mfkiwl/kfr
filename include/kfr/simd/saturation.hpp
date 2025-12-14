@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -29,23 +29,46 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-/// @brief Adds two arguments using saturation
-template <typename T1, typename T2, KFR_ENABLE_IF(is_numeric_args<T1, T2>),
-          typename Tout = std::common_type_t<T1, T2>>
+/**
+ * @brief Adds two numeric values using saturation arithmetic.
+ *
+ * Saturated addition clamps the result to the maximum or minimum value
+ * representable by the result type if overflow or underflow occurs.
+ *
+ * @tparam T1 Type of the first operand.
+ * @tparam T2 Type of the second operand.
+ * @tparam Tout Common type deduced from T1 and T2 (result type).
+ * @param x The first operand.
+ * @param y The second operand.
+ * @return The saturated sum of x and y.
+ */
+template <numeric T1, numeric T2, typename Tout = std::common_type_t<T1, T2>>
 KFR_INTRINSIC Tout satadd(const T1& x, const T2& y)
 {
-    return intrinsics::satadd(x, y);
+    return intr::satadd(x, y);
 }
 
-/// @brief Subtracts two arguments using saturation
-template <typename T1, typename T2, KFR_ENABLE_IF(is_numeric_args<T1, T2>),
-          typename Tout = std::common_type_t<T1, T2>>
+/**
+ * @brief Subtracts two numeric values using saturation arithmetic.
+ *
+ * Saturated subtraction clamps the result to the maximum or minimum value
+ * representable by the result type if overflow or underflow occurs.
+ *
+ * @tparam T1 Type of the first operand.
+ * @tparam T2 Type of the second operand.
+ * @tparam Tout Common type deduced from T1 and T2 (result type).
+ * @param x The first operand.
+ * @param y The second operand.
+ * @return The saturated difference of x and y.
+ */
+template <numeric T1, numeric T2, typename Tout = std::common_type_t<T1, T2>>
 KFR_INTRINSIC Tout satsub(const T1& x, const T2& y)
 {
-    return intrinsics::satsub(x, y);
+    return intr::satsub(x, y);
 }
-} // namespace CMT_ARCH_NAME
+
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

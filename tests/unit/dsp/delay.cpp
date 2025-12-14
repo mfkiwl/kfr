@@ -1,20 +1,20 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
-#include <kfr/testo/testo.hpp>
+#include <kfr/test/test.hpp>
 
 #include <kfr/base.hpp>
 #include <kfr/dsp/delay.hpp>
 
 using namespace kfr;
 
-namespace CMT_ARCH_NAME
+namespace KFR_ARCH_NAME
 {
 
-TEST(delay)
+TEST_CASE("delay")
 {
     const univector<float, 33> v1 = counter() + 100;
     CHECK_EXPRESSION(delay(v1), 33, [](size_t i) { return i < 1 ? 0.f : (i - 1) + 100.f; });
@@ -28,7 +28,7 @@ TEST(delay)
     CHECK_EXPRESSION(delay(v1, std::ref(state2)), 33, [](size_t i) { return i < 3 ? 0.f : (i - 3) + 100.f; });
 }
 
-TEST(fracdelay)
+TEST_CASE("fracdelay")
 {
     univector<double, 5> a({ 1, 2, 3, 4, 5 });
     univector<double, 5> b = fracdelay(a, 0.5);
@@ -44,4 +44,4 @@ TEST(fracdelay)
     CHECK(rms(b - univector<double>({ 0, 1, 2, 3, 4 })) < constants<double>::epsilon * 5);
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME

@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -30,7 +30,7 @@
 namespace kfr
 {
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T>
@@ -58,5 +58,5 @@ constexpr KFR_INTRINSIC vec<bit<T>, Nout> make_mask(bool arg, Args... args)
     return vec<bit<T>, Nout>(arg, static_cast<bool>(args)...);
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

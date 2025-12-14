@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -88,14 +88,14 @@ public:
         process_expression(dest, src, size_min(size, src.size()));
     }
 
-    template <univector_tag Tag, typename Expr, KFR_ENABLE_IF(is_input_expression<Expr>)>
+    template <univector_tag Tag, input_expression Expr>
     void apply(univector<T, Tag>& dest, const Expr& src)
     {
         static_assert(expression_dims<Expr> == 1);
         process_expression(dest.data(), to_handle(src), size_min(dest.size(), get_shape(src).front()));
     }
 
-    template <typename Expr, KFR_ENABLE_IF(is_input_expression<Expr>)>
+    template <input_expression Expr>
     void apply(T* dest, const Expr& src, size_t size)
     {
         process_expression(dest, to_handle(src), size_min(size, src.size()));
@@ -128,7 +128,7 @@ protected:
     expression_handle<T, 1> filter_expr;
 };
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 /// @brief Converts expression with placeholder to filter. Placeholder and filter must have the same type
@@ -137,7 +137,7 @@ KFR_INTRINSIC expression_filter<T> to_filter(E&& e)
 {
     return expression_filter<T>(to_handle(std::move(e)));
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 /// @brief Converts expression with placeholder to filter. Placeholder and filter must have the same type
 template <typename T, typename E>

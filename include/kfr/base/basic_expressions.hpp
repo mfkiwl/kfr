@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -65,7 +65,7 @@ KFR_INTRINSIC expression_scalar<T> ones()
     return { static_cast<T>(1) };
 }
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 template <typename T, index_t Axis, size_t N>
 KFR_INTRINSIC vec<T, N> get_elements(const expression_scalar<T>& self, const shape<0>& index,
@@ -73,7 +73,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_scalar<T>& self, const sha
 {
     return self.value;
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -114,7 +114,7 @@ KFR_INTRINSIC expression_counter<Tout, 1 + sizeof...(Args)> counter(T start, Arg
              { static_cast<Tout>(std::move(step)), static_cast<Tout>(std::move(steps))... } };
 }
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, index_t Axis, size_t N>
@@ -131,10 +131,10 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_counter<T, dims>& self, co
 {
     T acc                 = self.start;
     vec<T, dims> tindices = cast<T>(to_vec(index));
-    cfor(csize<0>, csize<dims>, [&](auto i) CMT_INLINE_LAMBDA { acc += tindices[i] * self.steps[i]; });
+    cfor(csize<0>, csize<dims>, [&](auto i) KFR_INLINE_LAMBDA { acc += tindices[i] * self.steps[i]; });
     return acc + enumerate(vec_shape<T, N>(), self.steps[Axis]);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -168,22 +168,22 @@ struct expression_traits<expression_slice<Arg>> : expression_traits_defaults
     KFR_MEM_INTRINSIC constexpr static shape<dims> get_shape() { return shape<dims>(undefined_size); }
 };
 
-template <typename Arg, KFR_ACCEPT_EXPRESSIONS(Arg), index_t Dims = expression_dims<Arg>>
-KFR_INTRINSIC expression_slice<Arg> slice(Arg&& arg, identity<shape<Dims>> start,
-                                          identity<shape<Dims>> size = shape<Dims>(infinite_size))
+template <expression_argument Arg, index_t Dims = expression_dims<Arg>>
+KFR_INTRINSIC expression_slice<Arg> slice(Arg&& arg, std::type_identity_t<shape<Dims>> start,
+                                          std::type_identity_t<shape<Dims>> size = shape<Dims>(infinite_size))
 {
     static_assert(Dims > 0);
     return { std::forward<Arg>(arg), start, size };
 }
 
-template <typename Arg, KFR_ACCEPT_EXPRESSIONS(Arg), index_t Dims = expression_dims<Arg>>
-KFR_INTRINSIC expression_slice<Arg> truncate(Arg&& arg, identity<shape<Dims>> size)
+template <expression_argument Arg, index_t Dims = expression_dims<Arg>>
+KFR_INTRINSIC expression_slice<Arg> truncate(Arg&& arg, std::type_identity_t<shape<Dims>> size)
 {
     static_assert(Dims > 0);
     return { std::forward<Arg>(arg), shape<Dims>{ 0 }, size };
 }
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename Arg, index_t NDims, index_t Axis, size_t N,
@@ -194,14 +194,14 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_slice<Arg>& self, const sh
     return static_cast<vec<T, N>>(get_elements(self.first(), index.add(self.start), sh));
 }
 
-template <typename Arg, index_t NDims, index_t Axis, size_t N, enable_if_output_expression<Arg>* = nullptr,
+template <output_expression Arg, index_t NDims, index_t Axis, size_t N,
           typename T = typename expression_traits<expression_slice<Arg>>::value_type>
 KFR_INTRINSIC void set_elements(const expression_slice<Arg>& self, const shape<NDims>& index,
-                                const axis_params<Axis, N>& sh, const identity<vec<T, N>>& value)
+                                const axis_params<Axis, N>& sh, const std::type_identity_t<vec<T, N>>& value)
 {
     set_elements(self.first(), index.add(self.start), sh, value);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -227,19 +227,19 @@ struct expression_traits<expression_cast<T, Arg>> : expression_traits_defaults
     KFR_MEM_INTRINSIC constexpr static shape<dims> get_shape() { return ArgTraits::get_shape(); }
 };
 
-template <typename T, typename Arg, KFR_ACCEPT_EXPRESSIONS(Arg)>
+template <typename T, expression_argument Arg>
 KFR_INTRINSIC expression_cast<T, Arg> cast(Arg&& arg)
 {
     return { std::forward<Arg>(arg) };
 }
 
-template <typename T, typename Arg, KFR_ACCEPT_EXPRESSIONS(Arg)>
+template <typename T, expression_argument Arg>
 KFR_INTRINSIC expression_cast<T, Arg> cast(Arg&& arg, ctype_t<T>)
 {
     return { std::forward<Arg>(arg) };
 }
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, typename Arg, index_t NDims, index_t Axis, size_t N>
@@ -251,11 +251,11 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_cast<T, Arg>& self, const 
 
 template <typename T, typename Arg, index_t NDims, index_t Axis, size_t N>
 KFR_INTRINSIC void set_elements(const expression_cast<T, Arg>& self, const shape<NDims>& index,
-                                const axis_params<Axis, N>& sh, const identity<vec<T, N>>& value)
+                                const axis_params<Axis, N>& sh, const std::type_identity_t<vec<T, N>>& value)
 {
     set_elements(self.first(), index, sh, value);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -298,7 +298,7 @@ KFR_INTRINSIC auto sequence(const Ts&... list)
     });
 }
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, index_t Dims, typename Fn, bool Rnd, index_t Axis, size_t N>
@@ -332,7 +332,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_lambda<T, Dims, Fn, Rnd>& 
     }
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -345,12 +345,12 @@ struct expression_padded : public expression_with_arguments<Arg>
 
     KFR_MEM_INTRINSIC expression_padded(Arg&& arg, typename ArgTraits::value_type fill_value)
         : expression_with_arguments<Arg>{ std::forward<Arg>(arg) }, fill_value(std::move(fill_value)),
-          input_shape(ArgTraits::get_shape(this->first()))
+          input_shape(ArgTraits::get_shape((this->first())))
     {
     }
 };
 
-template <typename Arg, KFR_ACCEPT_EXPRESSIONS(Arg), typename T = expression_value_type<Arg>>
+template <expression_argument Arg, typename T = expression_value_type<Arg>>
 KFR_INTRINSIC expression_padded<Arg> padded(Arg&& arg, T fill_value = T{})
 {
     static_assert(expression_dims<Arg> >= 1);
@@ -373,7 +373,7 @@ struct expression_traits<expression_padded<Arg>> : expression_traits_defaults
     KFR_MEM_INTRINSIC constexpr static shape<dims> get_shape() { return shape<dims>(infinite_size); }
 };
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename Arg, index_t Axis, size_t N, typename Traits = expression_traits<expression_padded<Arg>>,
@@ -385,7 +385,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_padded<Arg>& self, const s
     {
         return self.fill_value;
     }
-    else if (CMT_LIKELY(index.add(N).le(self.input_shape)))
+    else if (KFR_LIKELY(index.add(N).le(self.input_shape)))
     {
         return get_elements(self.first(), index, sh);
     }
@@ -402,7 +402,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_padded<Arg>& self, const s
     }
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -419,7 +419,7 @@ struct expression_reverse : public expression_with_arguments<Arg>
     }
 };
 
-template <typename Arg, KFR_ACCEPT_EXPRESSIONS(Arg)>
+template <expression_argument Arg>
 KFR_INTRINSIC expression_reverse<Arg> reverse(Arg&& arg)
 {
     static_assert(expression_dims<Arg> >= 1);
@@ -442,7 +442,7 @@ struct expression_traits<expression_reverse<Arg>> : expression_traits_defaults
     KFR_MEM_INTRINSIC constexpr static shape<dims> get_shape() { return ArgTraits::get_shape(); }
 };
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename Arg, index_t Axis, size_t N, typename Traits = expression_traits<expression_reverse<Arg>>,
@@ -452,8 +452,15 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_reverse<Arg>& self, const 
 {
     return reverse(get_elements(self.first(), self.input_shape.sub(index).sub(shape<Traits::dims>(N)), sh));
 }
+template <typename Arg, index_t Axis, size_t N, typename Traits = expression_traits<expression_reverse<Arg>>,
+          typename T = typename Traits::value_type>
+KFR_INTRINSIC void set_elements(expression_reverse<Arg>& self, const shape<Traits::dims>& index,
+                                const axis_params<Axis, N>& sh, const std::type_identity_t<vec<T, N>>& value)
+{
+    set_elements(self.first(), self.input_shape.sub(index).sub(shape<Traits::dims>(N)), sh, reverse(value));
+}
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -478,7 +485,7 @@ struct expression_fixshape : public expression_with_arguments<Arg>
     }
 };
 
-template <typename Arg, index_t... ShapeValues, KFR_ACCEPT_EXPRESSIONS(Arg)>
+template <expression_argument Arg, index_t... ShapeValues>
 KFR_INTRINSIC expression_fixshape<Arg, fixed_shape_t<ShapeValues...>> fixshape(
     Arg&& arg, const fixed_shape_t<ShapeValues...>&)
 {
@@ -505,7 +512,7 @@ struct expression_traits<expression_fixshape<Arg, fixed_shape_t<ShapeValues...>>
     }
 };
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename Arg, typename Shape, index_t Axis, size_t N,
@@ -522,7 +529,7 @@ template <typename Arg, typename Shape, index_t Axis, size_t N,
           typename Traits = expression_traits<expression_fixshape<Arg, Shape>>,
           typename T      = typename Traits::value_type>
 KFR_INTRINSIC void set_elements(expression_fixshape<Arg, Shape>& self, const shape<Traits::dims>& index,
-                                const axis_params<Axis, N>& sh, const identity<vec<T, N>>& value)
+                                const axis_params<Axis, N>& sh, const std::type_identity_t<vec<T, N>>& value)
 {
     using ArgTraits = expression_traits<Arg>;
     if constexpr (is_output_expression<Arg>)
@@ -534,7 +541,7 @@ KFR_INTRINSIC void set_elements(expression_fixshape<Arg, Shape>& self, const sha
     }
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -552,7 +559,7 @@ struct expression_reshape : public expression_with_arguments<Arg>
     }
 };
 
-template <typename Arg, index_t OutDims, KFR_ACCEPT_EXPRESSIONS(Arg)>
+template <expression_argument Arg, index_t OutDims>
 KFR_INTRINSIC expression_reshape<Arg, OutDims> reshape(Arg&& arg, const shape<OutDims>& out_shape)
 {
     return { std::forward<Arg>(arg), out_shape };
@@ -574,7 +581,7 @@ struct expression_traits<expression_reshape<Arg, OutDims>> : expression_traits_d
     KFR_MEM_INTRINSIC constexpr static shape<dims> get_shape() { return shape<dims>{ undefined_size }; }
 };
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename Arg, index_t outdims, index_t Axis, size_t N,
@@ -604,7 +611,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_reshape<Arg, outdims>& sel
         if (diff_idx.sum() == N - 1)
         {
             cforeach(cvalseq_t<index_t, indims, 0>{},
-                     [&](auto n) CMT_INLINE_LAMBDA
+                     [&](auto n) KFR_INLINE_LAMBDA
                      {
                          constexpr index_t axis = val_of<decltype(n)>({});
                          if (!done && diff_idx[axis] == N - 1)
@@ -618,7 +625,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_reshape<Arg, outdims>& sel
         if (!done)
         {
             portable_vec<T, N> tmp;
-            CMT_LOOP_NOUNROLL
+            KFR_LOOP_NOUNROLL
             for (size_t i = 0; i < N; ++i)
             {
                 shape<Traits::dims> idx = index.add_at(i, cindex<Axis>);
@@ -636,7 +643,7 @@ template <typename Arg, index_t outdims, index_t Axis, size_t N,
           typename Traits = expression_traits<expression_reshape<Arg, outdims>>,
           typename T      = typename Traits::value_type>
 KFR_INTRINSIC void set_elements(expression_reshape<Arg, outdims>& self, const shape<Traits::dims>& index,
-                                const axis_params<Axis, N>& sh, const identity<vec<T, N>>& value)
+                                const axis_params<Axis, N>& sh, const std::type_identity_t<vec<T, N>>& value)
 {
     using ArgTraits          = typename Traits::ArgTraits;
     constexpr index_t indims = ArgTraits::dims;
@@ -656,7 +663,7 @@ KFR_INTRINSIC void set_elements(expression_reshape<Arg, outdims>& self, const sh
         bool done = false;
 
         cforeach(cvalseq_t<index_t, indims, 0>{},
-                 [&](auto n) CMT_INLINE_LAMBDA
+                 [&](auto n) KFR_INLINE_LAMBDA
                  {
                      constexpr index_t axis = val_of<decltype(n)>({});
                      if (!done && diff_idx[axis] == N - 1)
@@ -668,7 +675,7 @@ KFR_INTRINSIC void set_elements(expression_reshape<Arg, outdims>& self, const sh
 
         if (!done)
         {
-            CMT_LOOP_NOUNROLL
+            KFR_LOOP_NOUNROLL
             for (size_t i = 0; i < N; ++i)
             {
                 set_elements(self.first(),
@@ -679,7 +686,7 @@ KFR_INTRINSIC void set_elements(expression_reshape<Arg, outdims>& self, const sh
     }
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -755,7 +762,20 @@ KFR_INTRINSIC expression_linspace<Tout, truncated> symmlinspace(T symsize, size_
     return { symmetric_linspace, static_cast<Tout>(symsize), size, true };
 }
 
-inline namespace CMT_ARCH_NAME
+template <typename T, bool precise = false, bool truncated = false, typename Tout = ftype<T>>
+KFR_INTRINSIC expression_linspace<Tout, true> arange(T start, T stop, T step = 1, cbool_t<truncated> = {})
+{
+    return linspace<T, precise>(start, stop, static_cast<size_t>(std::ceil((stop - start) / step)), false,
+                                ctrue);
+}
+
+template <typename T, bool precise = false, bool truncated = false, typename Tout = ftype<T>>
+KFR_INTRINSIC expression_linspace<Tout, true> arange(T stop, cbool_t<truncated> = {})
+{
+    return linspace<T, precise>(static_cast<T>(0), stop, static_cast<size_t>(std::ceil(stop)), false, ctrue);
+}
+
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, bool truncated, size_t N>
@@ -766,7 +786,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_linspace<T, truncated>& se
     return mix((enumerate(vec_shape<T, N>()) + static_cast<T>(static_cast<TI>(index.front()))) * self.invsize,
                self.start, self.stop);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 // ----------------------------------------------------------------------------
 
@@ -815,21 +835,22 @@ struct expression_traits<expression_concatenate<Arg1, Arg2, ConcatAxis>> : expre
     }
 };
 
-template <index_t ConcatAxis = 0, typename Arg1, typename Arg2, KFR_ACCEPT_EXPRESSIONS(Arg1, Arg2)>
+template <index_t ConcatAxis = 0, input_expression Arg1, input_expression Arg2>
+    requires expression_arguments<Arg1, Arg2>
 KFR_INTRINSIC expression_concatenate<Arg1, Arg2, ConcatAxis> concatenate(Arg1&& arg1, Arg2&& arg2)
 {
     return { std::forward<Arg1>(arg1), std::forward<Arg2>(arg2) };
 }
 
-template <index_t ConcatAxis = 0, typename Arg1, typename Arg2, typename Arg3,
-          KFR_ACCEPT_EXPRESSIONS(Arg1, Arg2, Arg3)>
+template <index_t ConcatAxis = 0, input_expression Arg1, input_expression Arg2, input_expression Arg3>
+    requires expression_arguments<Arg1, Arg2, Arg3>
 KFR_INTRINSIC expression_concatenate<Arg1, expression_concatenate<Arg2, Arg3, ConcatAxis>, ConcatAxis>
 concatenate(Arg1&& arg1, Arg2&& arg2, Arg3&& arg3)
 {
     return { std::forward<Arg1>(arg1), { std::forward<Arg2>(arg2), std::forward<Arg3>(arg3) } };
 }
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename Arg1, typename Arg2, index_t ConcatAxis, index_t NDims, index_t Axis, size_t N,
@@ -845,7 +866,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_concatenate<Arg1, Arg2, Co
         index1[ConcatAxis] -= size1[ConcatAxis];
         return get_elements(std::get<1>(self.args), index1, sh);
     }
-    else if (CMT_LIKELY(index[ConcatAxis] + Naxis <= size1[ConcatAxis]))
+    else if (KFR_LIKELY(index[ConcatAxis] + Naxis <= size1[ConcatAxis]))
     {
         return get_elements(std::get<0>(self.args), index, sh);
     }
@@ -874,7 +895,8 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_concatenate<Arg1, Arg2, Co
 template <typename... Args>
 using expression_pack = expression_make_function<fn::packtranspose, Args...>;
 
-template <typename... Args, KFR_ACCEPT_EXPRESSIONS(Args...)>
+template <typename... Args>
+    requires expression_arguments<Args...>
 KFR_INTRINSIC expression_pack<Args...> pack(Args&&... args)
 {
     return { std::forward<Args>(args)... };
@@ -898,7 +920,8 @@ KFR_INTRINSIC void set_elements_packed(expression_function<fn::packtranspose, Ar
 template <typename... Args, index_t Axis, size_t N,
           typename Tr = expression_traits<expression_function<fn::packtranspose, Args...>>>
 KFR_INTRINSIC void set_elements(expression_function<fn::packtranspose, Args...>& self, shape<Tr::dims> index,
-                                axis_params<Axis, N> sh, const identity<vec<typename Tr::value_type, N>>& x)
+                                axis_params<Axis, N> sh,
+                                const std::type_identity_t<vec<typename Tr::value_type, N>>& x)
 {
     internal::set_elements_packed(self, index, sh, x, csizeseq<sizeof...(Args)>);
 }
@@ -918,7 +941,7 @@ struct expression_unpack : expression_with_arguments<E...>, expression_traits_de
     using value_type = vec<first_value_type, count>;
 
     static_assert(((expression_dims<E> == dims) && ...));
-    static_assert(((std::is_same_v<expression_value_type<E>, first_value_type>)&&...));
+    static_assert(((std::is_same_v<expression_value_type<E>, first_value_type>) && ...));
 
     constexpr static shape<dims> get_shape(const expression_unpack& self)
     {
@@ -930,12 +953,13 @@ struct expression_unpack : expression_with_arguments<E...>, expression_traits_de
 
     template <index_t Axis, size_t N>
     KFR_INTRINSIC friend void set_elements(expression_unpack& self, shape<dims> index,
-                                           axis_params<Axis, N> sh, const identity<vec<value_type, N>>& x)
+                                           axis_params<Axis, N> sh,
+                                           const std::type_identity_t<vec<value_type, N>>& x)
     {
         self.output(index, sh, x, csizeseq<count>);
     }
 
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     KFR_MEM_INTRINSIC expression_unpack& operator=(Input&& input)
     {
         process(*this, std::forward<Input>(input));
@@ -955,7 +979,7 @@ private:
 
 // ----------------------------------------------------------------------------
 
-template <typename... E, enable_if_output_expressions<E...>* = nullptr>
+template <output_expression... E>
 KFR_FUNCTION expression_unpack<E...> unpack(E&&... e)
 {
     return { std::forward<E>(e)... };
@@ -1011,7 +1035,7 @@ struct expression_trace : public expression_with_traits<E>
                                                          axis_params<VecAxis, N> sh)
     {
         const vec<value_type, N> in = get_elements(self.first(), index, sh);
-        println("[", cometa::fmt<'s', 16>(array_to_string(dims, index.data(), INT_MAX, INT_MAX, ",", "", "")),
+        println("[", kfr::fmt<'s', 16>(array_to_string(dims, index.data(), INT_MAX, INT_MAX, ",", "", "")),
                 "] = ", in);
         return in;
     }
@@ -1074,5 +1098,5 @@ KFR_INTRINSIC expression_dimensions<Dims, E1> dimensions(E1&& e1)
 
 // ----------------------------------------------------------------------------
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

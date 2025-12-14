@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+# Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
 # This file is part of KFR
 #
 # KFR is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with KFR.
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
 if (NOT WIN32)
     set(CMAKE_CXX_VISIBILITY_PRESET "hidden")
@@ -26,7 +26,7 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif ()
 
 add_library(kfr_capi SHARED capi.cpp)
-target_link_libraries(kfr_capi PRIVATE kfr_dft kfr_dsp)
+target_link_libraries(kfr_capi PRIVATE kfr_dft kfr_dsp kfr_audio)
 
 target_compile_definitions(kfr_capi PRIVATE KFR_BUILDING_DLL=1)
 
@@ -49,10 +49,12 @@ if (KFR_INSTALL_LIBRARIES)
     if (KFR_ENABLE_CAPI_BUILD)
         install(
             TARGETS kfr_capi
-            EXPORT kfr_export
-            ARCHIVE DESTINATION lib$<$<CONFIG:Debug>:${KFR_DEBUG_INSTALL_SUFFIX}>
-            LIBRARY DESTINATION lib$<$<CONFIG:Debug>:${KFR_DEBUG_INSTALL_SUFFIX}>
-            RUNTIME DESTINATION bin$<$<CONFIG:Debug>:${KFR_DEBUG_INSTALL_SUFFIX}>
-            )
+            EXPORT KFRTargets
+            ARCHIVE
+                DESTINATION lib$<$<CONFIG:Debug>:${KFR_DEBUG_INSTALL_SUFFIX}>
+            LIBRARY
+                DESTINATION lib$<$<CONFIG:Debug>:${KFR_DEBUG_INSTALL_SUFFIX}>
+            RUNTIME
+                DESTINATION bin$<$<CONFIG:Debug>:${KFR_DEBUG_INSTALL_SUFFIX}>)
     endif ()
 endif ()

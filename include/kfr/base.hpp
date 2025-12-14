@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -32,10 +32,12 @@
 #include "base/fraction.hpp"
 #include "base/generators.hpp"
 #include "base/handle.hpp"
+#include "base/inline_vector.hpp"
 #include "base/math_expressions.hpp"
 #include "base/memory.hpp"
-#include "base/random.hpp"
+#include "base/npy.hpp"
 #include "base/random_bits.hpp"
+#include "base/random.hpp"
 #include "base/reduce.hpp"
 #include "base/shape.hpp"
 #include "base/simd_expressions.hpp"

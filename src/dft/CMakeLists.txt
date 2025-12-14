@@ -1,6 +1,9 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
-add_kfr_library(NAME kfr_dft MULTIARCH SOURCES ${KFR_DFT_SRC})
+add_kfr_library(
+    NAME kfr_dft
+    MULTIARCH
+    SOURCES ${KFR_DFT_SRC})
 
 function (dft_compile_options LIB)
     if (MSVC AND CLANG)
@@ -18,7 +21,7 @@ endforeach ()
 if (KFR_INSTALL_LIBRARIES)
     install(
         TARGETS ${kfr_dft_TARGETS}
-        EXPORT kfr_export
+        EXPORT KFRTargets
         ARCHIVE DESTINATION lib$<$<CONFIG:Debug>:${KFR_DEBUG_INSTALL_SUFFIX}>
         LIBRARY DESTINATION lib$<$<CONFIG:Debug>:${KFR_DEBUG_INSTALL_SUFFIX}>
         RUNTIME DESTINATION bin$<$<CONFIG:Debug>:${KFR_DEBUG_INSTALL_SUFFIX}>)

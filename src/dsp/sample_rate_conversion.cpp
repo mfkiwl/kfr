@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -23,12 +23,15 @@
   disclosing the source code of your own applications.
   See https://www.kfrlib.com for details.
  */
+#include <kfr/cident.h>
+#if !defined KFR_SKIP_IF_NON_X86 || defined(KFR_ARCH_X86)
+
 #include <kfr/dsp/sample_rate_conversion.hpp>
 #include <kfr/multiarch.h>
 
 namespace kfr
 {
-CMT_MULTI_PROTO(namespace impl {
+KFR_MULTI_PROTO(namespace impl {
     template <typename T>
     struct samplerate_converter : public kfr::samplerate_converter<T>
     {
@@ -42,7 +45,7 @@ CMT_MULTI_PROTO(namespace impl {
 } // namespace impl
 )
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 namespace impl
 {
@@ -56,7 +59,7 @@ void samplerate_converter<T>::init(sample_rate_conversion_quality quality, itype
     this->input_position  = 0;
     this->output_position = 0;
 
-    const i64 gcf = gcd(interpolation_factor, decimation_factor);
+    const i64 gcf = std::gcd(interpolation_factor, decimation_factor);
     interpolation_factor /= gcf;
     decimation_factor /= gcf;
 
@@ -149,23 +152,23 @@ template struct samplerate_converter<complex<float>>;
 template struct samplerate_converter<complex<double>>;
 
 } // namespace impl
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
-#ifdef CMT_MULTI_NEEDS_GATE
+#ifdef KFR_MULTI_NEEDS_GATE
 
 template <typename T>
 samplerate_converter<T>::samplerate_converter(sample_rate_conversion_quality quality,
                                               itype interpolation_factor, itype decimation_factor,
                                               ftype scale, ftype cutoff)
 {
-    CMT_MULTI_GATE(reinterpret_cast<ns::impl::samplerate_converter<T>*>(this)->init(
+    KFR_MULTI_GATE(reinterpret_cast<ns::impl::samplerate_converter<T>*>(this)->init(
         quality, interpolation_factor, decimation_factor, scale, cutoff));
 }
 
 template <typename T>
 size_t samplerate_converter<T>::process_impl(univector_ref<T> output, univector_ref<const T> input)
 {
-    CMT_MULTI_GATE(
+    KFR_MULTI_GATE(
         return reinterpret_cast<ns::impl::samplerate_converter<T>*>(this)->process_impl(output, input));
 }
 
@@ -177,3 +180,5 @@ template struct samplerate_converter<complex<double>>;
 #endif
 
 } // namespace kfr
+
+#endif

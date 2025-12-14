@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
  */
 #pragma once
 
-#include "../cometa/string.hpp"
+#include "../meta/string.hpp"
 #include "../simd/types.hpp"
 
 namespace kfr
@@ -36,12 +36,12 @@ struct fraction
     fraction(i64 num = 0, i64 den = 1) : numerator(num), denominator(den) { normalize(); }
     void normalize()
     {
-        if (CMT_UNLIKELY(denominator < 0))
+        if (KFR_UNLIKELY(denominator < 0))
         {
             denominator = -denominator;
             numerator   = -numerator;
         }
-        const i64 z = gcd(std::abs(numerator), std::abs(denominator));
+        const i64 z = std::gcd(std::abs(numerator), std::abs(denominator));
         numerator /= z;
         denominator /= z;
     }
@@ -120,22 +120,10 @@ struct fraction
     }
 
 private:
-    static i64 gcd(i64 a, i64 b)
-    {
-        i64 r;
-        while (b > 0)
-        {
-            r = a % b;
-            a = b;
-            b = r;
-        }
-        return a;
-    }
-    static i64 lcm(i64 a, i64 b) { return std::abs(a * b) / gcd(a, b); }
 };
 } // namespace kfr
 
-namespace cometa
+namespace kfr
 {
 template <>
 struct representation<kfr::fraction>
@@ -149,4 +137,4 @@ struct representation<kfr::fraction>
             return as_string(value.numerator, "/", value.denominator);
     }
 };
-} // namespace cometa
+} // namespace kfr

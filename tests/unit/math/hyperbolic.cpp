@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -10,12 +10,12 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 KFR_AUTO_TEST_1(sinh, narrow, 114, 2.5)
 KFR_AUTO_TEST_1(cosh, narrow, 7, 2.5)
 KFR_AUTO_TEST_1(tanh, narrow, 45, 1)
 KFR_AUTO_TEST_1(coth, narrow, 85, 1)
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 } // namespace kfr

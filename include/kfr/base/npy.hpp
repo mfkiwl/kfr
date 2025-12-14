@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -38,7 +38,6 @@ namespace internal_generic
 template <typename T>
 std::string_view npy_format()
 {
-    using namespace cometa;
     static_assert(is_poweroftwo(sizeof(T)) && is_between(sizeof(T), 1, 16));
     if constexpr (std::is_floating_point_v<T>)
     {
@@ -104,12 +103,12 @@ struct npy_writer
     void operator()(std::initializer_list<uint8_t> b) { operator()(&*b.begin(), b.size()); }
 
     template <typename Num>
-    void operator()(cometa::ctype_t<Num>, cometa::identity<Num> n)
+    void operator()(kfr::ctype_t<Num>, std::type_identity_t<Num> n)
     {
         operator()(&n, sizeof(Num));
     }
     template <typename Num>
-    void operator()(cometa::ctype_t<Num>, const Num* n, size_t count)
+    void operator()(kfr::ctype_t<Num>, const Num* n, size_t count)
     {
         operator()(n, sizeof(Num) * count);
     }
@@ -123,7 +122,7 @@ struct npy_reader
     bool operator()(void* d, size_t size) { return fn(d, size); }
 
     template <typename Num>
-    Num operator()(cometa::ctype_t<Num>)
+    Num operator()(kfr::ctype_t<Num>)
     {
         Num result;
         if (!operator()(&result, sizeof(Num)))
@@ -131,20 +130,20 @@ struct npy_reader
         return result;
     }
     template <typename Num>
-    bool operator()(cometa::ctype_t<Num>, Num& n)
+    bool operator()(kfr::ctype_t<Num>, Num& n)
     {
         return operator()(&n, sizeof(Num));
     }
     template <typename Num>
-    bool operator()(cometa::ctype_t<Num>, Num* n, size_t count)
+    bool operator()(kfr::ctype_t<Num>, Num* n, size_t count)
     {
         return operator()(n, sizeof(Num) * count);
     }
 
-    std::string operator()(cometa::ctype_t<char>, size_t count)
+    std::string operator()(kfr::ctype_t<char>, size_t count)
     {
         std::string result(count, ' ');
-        if (!operator()(cometa::ctype<char>, result.data(), count))
+        if (!operator()(kfr::ctype<char>, result.data(), count))
             return {};
         return result;
     }
@@ -348,10 +347,21 @@ inline bool npy_decode_dict(std::string_view data, npy_header& hdr)
     return !data.empty() && data[0] == '}';
 }
 
-inline std::string_view npy_magic = "\x93NUMPY";
+inline const std::string_view npy_magic = "\x93NUMPY";
 
 } // namespace internal_generic
 
+/**
+ * @brief Saves a tensor to `.npy` format using a custom write callback.
+ *
+ * The write callback must match the signature: `void(const void* data, size_t write_size)`
+ *
+ * @tparam T Element type of the tensor.
+ * @tparam Dims Number of dimensions.
+ * @tparam Fn Write callback type.
+ * @param t Tensor to save.
+ * @param write_callback Callback used to write binary data.
+ */
 template <typename T, index_t Dims, typename Fn>
 void save_to_npy(const tensor<T, Dims>& t, Fn&& write_callback)
 {
@@ -366,32 +376,47 @@ void save_to_npy(const tensor<T, Dims>& t, Fn&& write_callback)
 
     std::string_view padding = "                                                               ";
 
-    size_t total_header = cometa::align_up(wr.written + 2 + header.size() + 1, 64);
+    size_t total_header = kfr::align_up(wr.written + 2 + header.size() + 1, 64);
     header += padding.substr(0, total_header - (wr.written + 2 + header.size() + 1));
     header += '\n';
     uint16_t header_len = header.size();
-    wr(cometa::ctype<uint16_t>, header_len);
+    wr(kfr::ctype<uint16_t>, header_len);
     wr(header);
     if (t.is_contiguous())
     {
-        wr(cometa::ctype<T>, t.data(), t.size());
+        wr(kfr::ctype<T>, t.data(), t.size());
     }
     else
     {
         tensor<T, Dims> copy = t.copy();
-        wr(cometa::ctype<T>, copy.data(), copy.size());
+        wr(kfr::ctype<T>, copy.data(), copy.size());
     }
 }
 
+/**
+ * @brief Status returned by the `.npy` loading function.
+ */
 enum class npy_decode_result
 {
-    ok,
-    cannot_read,
-    invalid_header,
-    invalid_type,
-    invalid_shape,
+    ok, ///< Successfully loaded
+    cannot_read, ///< Failed to read data or header
+    invalid_header, ///< Malformed header
+    invalid_type, ///< Type mismatch
+    invalid_shape ///< Shape mismatch
 };
 
+/**
+ * @brief Loads a tensor from `.npy` format using a custom read callback.
+ *
+ * The read callback must match the signature: `bool(void* data, size_t read_size)`
+ *
+ * @tparam T Element type of the tensor.
+ * @tparam Dims Number of dimensions.
+ * @tparam Fn Read callback type.
+ * @param result Tensor to populate with loaded data.
+ * @param read_callback Callback used to read binary data.
+ * @return Status code indicating success or failure reason.
+ */
 template <typename T, index_t Dims, typename Fn>
 npy_decode_result load_from_npy(tensor<T, Dims>& result, Fn&& read_callback)
 {
@@ -449,7 +474,7 @@ npy_decode_result load_from_npy(tensor<T, Dims>& result, Fn&& read_callback)
     rd(ctype<T>, buffer.data(), buffer.size());
     if (convert_endianness)
     {
-        convert_endianess(buffer.data(), buffer.size());
+        kfr::convert_endianness(buffer.data(), buffer.size());
     }
     if (hdr.fortran_order)
     {
@@ -466,7 +491,7 @@ npy_decode_result load_from_npy(tensor<T, Dims>& result, Fn&& read_callback)
 }
 } // namespace kfr
 
-namespace cometa
+namespace kfr
 {
 template <>
 struct representation<kfr::npy_decode_result>
@@ -491,4 +516,4 @@ struct representation<kfr::npy_decode_result>
         }
     }
 };
-} // namespace cometa
+} // namespace kfr

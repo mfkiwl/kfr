@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -25,15 +25,15 @@
  */
 #pragma once
 
-#include "../cometa/array.hpp"
+#include "../meta/array.hpp"
 #include "../simd/impl/function.hpp"
 #include "../simd/read_write.hpp"
 #include "../simd/types.hpp"
 #include "expression.hpp"
 #include "memory.hpp"
 
-CMT_PRAGMA_MSVC(warning(push))
-CMT_PRAGMA_MSVC(warning(disable : 4324))
+KFR_PRAGMA_MSVC(warning(push))
+KFR_PRAGMA_MSVC(warning(disable : 4324))
 
 namespace kfr
 {
@@ -94,7 +94,7 @@ struct univector_base;
 template <typename T, typename Class>
 struct univector_base<T, Class, true>
 {
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     KFR_MEM_INTRINSIC Class& operator=(Input&& input)
     {
         constexpr index_t dims = expression_dims<Input>;
@@ -162,7 +162,7 @@ struct univector_base<T, Class, true>
 
     void ringbuf_write(size_t& cursor, const T* src, size_t srcsize)
     {
-        if (CMT_UNLIKELY(srcsize == 0))
+        if (KFR_UNLIKELY(srcsize == 0))
             return;
         // skip redundant data
         const size_t size = get_size();
@@ -174,7 +174,7 @@ struct univector_base<T, Class, true>
         }
         const size_t fsize = size - cursor;
         // one fragment
-        if (CMT_LIKELY(srcsize <= fsize))
+        if (KFR_LIKELY(srcsize <= fsize))
         {
             copy(data + cursor, src, srcsize);
         }
@@ -215,7 +215,7 @@ struct univector_base<T, Class, true>
     }
     void ringbuf_read(size_t& cursor, T* dest, size_t destsize) const
     {
-        if (CMT_UNLIKELY(destsize == 0))
+        if (KFR_UNLIKELY(destsize == 0))
             return;
         // skip redundant data
         const size_t size = get_size();
@@ -227,7 +227,7 @@ struct univector_base<T, Class, true>
         }
         const size_t fsize = size - cursor;
         // one fragment
-        if (CMT_LIKELY(destsize <= fsize))
+        if (KFR_LIKELY(destsize <= fsize))
         {
             copy(dest, data + cursor, destsize);
         }
@@ -280,7 +280,7 @@ struct univector_base<T, Class, false>
         return array_ref<const T>(data, size);
     }
 
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     KFR_MEM_INTRINSIC Class& operator=(Input&& input)
     {
         static_assert(sizeof(Input) == 0, "Can't assign expression to non-expression");
@@ -299,26 +299,26 @@ struct alignas(platform<>::maximum_vector_alignment) univector
       univector_base<T, univector<T, Size>, is_vec_element<T>>
 {
     static_assert(!std::is_const_v<T>, "Static vector doesn't allow T to be const");
-    
+
     using std::array<T, Size>::size;
     using size_type = size_t;
-#if !defined CMT_COMPILER_MSVC || defined CMT_COMPILER_CLANG
+#if !defined KFR_COMPILER_MSVC || defined KFR_COMPILER_CLANG
     univector(univector& v) : univector(const_cast<const univector&>(v)) {}
 #endif
     univector(const univector& v)   = default;
     univector(univector&&) noexcept = default;
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     univector(Input&& input)
     {
         this->assign_expr(std::forward<Input>(input));
     }
     template <typename... Args>
-    constexpr univector(const T& x, const Args&... args) CMT_NOEXCEPT
+    constexpr univector(const T& x, const Args&... args) noexcept
         : std::array<T, Size>{ { x, static_cast<T>(args)... } }
     {
     }
 
-    constexpr univector() CMT_NOEXCEPT_SPEC(noexcept(std::array<T, Size>())) = default;
+    constexpr univector() noexcept(noexcept(std::array<T, Size>())) = default;
     constexpr univector(size_t, const T& value) { std::fill(this->begin(), this->end(), value); }
     constexpr static bool size_known    = true;
     constexpr static size_t static_size = Size;
@@ -328,13 +328,13 @@ struct alignas(platform<>::maximum_vector_alignment) univector
     constexpr static bool is_aligned    = true;
     using value_type                    = T;
 
-    value_type get(size_t index, value_type fallback_value) const CMT_NOEXCEPT
+    value_type get(size_t index, value_type fallback_value) const noexcept
     {
         return index < this->size() ? this->operator[](index) : fallback_value;
     }
     using univector_base<T, univector, is_vec_element<T>>::operator=;
 
-    void resize(size_t) CMT_NOEXCEPT {}
+    void resize(size_t) noexcept {}
 };
 
 template <typename T>
@@ -344,7 +344,7 @@ struct univector<T, tag_array_ref> : array_ref<T>,
     using array_ref<T>::size;
     using array_ref<T>::array_ref;
     using size_type = size_t;
-#if !defined CMT_COMPILER_MSVC || defined CMT_COMPILER_CLANG
+#if !defined KFR_COMPILER_MSVC || defined KFR_COMPILER_CLANG
     univector(univector& v) : univector(const_cast<const univector&>(v)) {}
 #endif
     univector(const univector& v)   = default;
@@ -360,22 +360,22 @@ struct univector<T, tag_array_ref> : array_ref<T>,
     constexpr univector(univector<T, Tag>& other) : array_ref<T>(other.data(), other.size())
     {
     }
-    template <typename U, univector_tag Tag,
-              KFR_ENABLE_IF(std::is_same_v<std::remove_const_t<T>, U>&& std::is_const_v<T>)>
+    template <typename U, univector_tag Tag>
+        requires(std::is_same_v<std::remove_const_t<T>, U> && std::is_const_v<T>)
     constexpr univector(const univector<U, Tag>& other) : array_ref<T>(other.data(), other.size())
     {
     }
-    template <typename U, univector_tag Tag,
-              KFR_ENABLE_IF(std::is_same_v<std::remove_const_t<T>, U>&& std::is_const_v<T>)>
+    template <typename U, univector_tag Tag>
+        requires(std::is_same_v<std::remove_const_t<T>, U> && std::is_const_v<T>)
     constexpr univector(univector<U, Tag>& other) : array_ref<T>(other.data(), other.size())
     {
     }
-    template <typename U, univector_tag Tag,
-              KFR_ENABLE_IF(std::is_same_v<std::remove_const_t<T>, U>&& std::is_const_v<T>)>
+    template <typename U, univector_tag Tag>
+        requires(std::is_same_v<std::remove_const_t<T>, U> && std::is_const_v<T>)
     constexpr univector(univector<U, Tag>&& other) : array_ref<T>(other.data(), other.size())
     {
     }
-    void resize(size_t) CMT_NOEXCEPT {}
+    void resize(size_t) noexcept {}
     constexpr static bool size_known   = false;
     constexpr static bool is_array     = false;
     constexpr static bool is_array_ref = true;
@@ -383,7 +383,7 @@ struct univector<T, tag_array_ref> : array_ref<T>,
     constexpr static bool is_aligned   = false;
     using value_type                   = std::remove_const_t<T>;
 
-    value_type get(size_t index, value_type fallback_value) const CMT_NOEXCEPT
+    value_type get(size_t index, value_type fallback_value) const noexcept
     {
         return index < this->size() ? this->operator[](index) : fallback_value;
     }
@@ -402,12 +402,12 @@ struct univector<T, tag_dynamic_vector>
     using std::vector<T, data_allocator<T>>::size;
     using std::vector<T, data_allocator<T>>::vector;
     using size_type = size_t;
-#if !defined CMT_COMPILER_IS_MSVC
+#if !defined KFR_COMPILER_IS_MSVC
     univector(univector& v) : univector(const_cast<const univector&>(v)) {}
 #endif
     univector(const univector& v)   = default;
     univector(univector&&) noexcept = default;
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     univector(Input&& input)
     {
         static_assert(!is_infinite<Input>, "Dynamically sized vector requires finite input expression");
@@ -419,7 +419,7 @@ struct univector<T, tag_dynamic_vector>
         }
         this->assign_expr(std::forward<Input>(input));
     }
-    constexpr univector() CMT_NOEXCEPT_SPEC(noexcept(std::vector<T, data_allocator<T>>())) = default;
+    constexpr univector() noexcept(noexcept(std::vector<T, data_allocator<T>>())) = default;
     constexpr univector(const std::vector<T, data_allocator<T>>& other)
         : std::vector<T, data_allocator<T>>(other)
     {
@@ -447,12 +447,12 @@ struct univector<T, tag_dynamic_vector>
     constexpr static bool is_aligned                 = true;
     using value_type                                 = T;
 
-    value_type get(size_t index, value_type fallback_value) const CMT_NOEXCEPT
+    value_type get(size_t index, value_type fallback_value) const noexcept
     {
         return index < this->size() ? this->operator[](index) : fallback_value;
     }
     using univector_base<T, univector, is_vec_element<T>>::operator=;
-#ifdef CMT_COMPILER_IS_MSVC
+#ifdef KFR_COMPILER_IS_MSVC
     univector& operator=(const univector& other)
     {
         this->~univector();
@@ -470,7 +470,7 @@ struct univector<T, tag_dynamic_vector>
     univector& operator=(univector&&)      = default;
 #endif
     KFR_MEM_INTRINSIC univector& operator=(univector& other) { return operator=(std::as_const(other)); }
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     KFR_MEM_INTRINSIC univector& operator=(Input&& input)
     {
         constexpr index_t dims = expression_dims<Input>;
@@ -541,16 +541,14 @@ KFR_INTRINSIC univector_ref<const T> make_univector(const T* data, size_t size)
 }
 
 /// @brief Creates univector from a container (must have data() and size() methods)
-template <typename Container, KFR_ENABLE_IF(kfr::has_data_size<Container>),
-          typename T = value_type_of<Container>>
+template <has_data_size Container, typename T = value_type_of<Container>>
 KFR_INTRINSIC univector_ref<const T> make_univector(const Container& container)
 {
     return univector_ref<const T>(container.data(), container.size());
 }
 
 /// @brief Creates univector from a container (must have data() and size() methods)
-template <typename Container, KFR_ENABLE_IF(kfr::has_data_size<Container>),
-          typename T = value_type_of<Container>>
+template <has_data_size Container, typename T = value_type_of<Container>>
 KFR_INTRINSIC univector_ref<T> make_univector(Container& container)
 {
     return univector_ref<T>(container.data(), container.size());
@@ -634,7 +632,7 @@ private:
     char cacheline_filler[64 - sizeof(std::atomic<size_t>)];
     std::atomic<size_t> tail;
 };
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, univector_tag Tag, size_t N>
@@ -645,9 +643,10 @@ KFR_INTRINSIC vec<std::remove_const_t<T>, N> get_elements(const univector<T, Tag
     return read<N>(ptr_cast<T>(data) + index.front());
 }
 
-template <typename T, univector_tag Tag, size_t N, KFR_ENABLE_IF(!std::is_const_v<T>)>
+template <typename T, univector_tag Tag, size_t N>
+    requires(!std::is_const_v<T>)
 KFR_INTRINSIC void set_elements(univector<T, Tag>& self, const shape<1>& index, const axis_params<0, N>&,
-                                const identity<vec<T, N>>& value)
+                                const std::type_identity_t<vec<T, N>>& value)
 {
     T* data = self.data();
     write(ptr_cast<T>(data) + index.front(), value);
@@ -684,10 +683,10 @@ KFR_INTRINSIC univector<T, Size> render(Expr&& expr, csize_t<Size>)
     result = expr;
     return result;
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr
 
-namespace cometa
+namespace kfr
 {
 template <typename T, kfr::univector_tag Tag>
 struct representation<kfr::univector<T, Tag>>
@@ -709,6 +708,6 @@ struct representation<fmt_t<kfr::univector<T, Tag>, t, width, prec>>
     }
 };
 
-} // namespace cometa
+} // namespace kfr
 
-CMT_PRAGMA_MSVC(warning(pop))
+KFR_PRAGMA_MSVC(warning(pop))

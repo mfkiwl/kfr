@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -8,9 +8,9 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
-TEST(select_true)
+TEST_CASE("select_true")
 {
     test_function2(
         test_catogories::vectors,
@@ -22,7 +22,7 @@ TEST(select_true)
         [](auto x, auto) { return x; });
 }
 
-TEST(select_false)
+TEST_CASE("select_false")
 {
     test_function2(
         test_catogories::vectors,
@@ -33,5 +33,5 @@ TEST(select_false)
         },
         [](auto, auto y) { return y; });
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

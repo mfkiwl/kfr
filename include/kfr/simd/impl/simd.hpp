@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -28,10 +28,10 @@
 namespace kfr
 {
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 
 template <typename T, size_t N>
@@ -64,7 +64,7 @@ struct simd_cvt_t
 template <typename T, size_t N>
 constexpr size_t alignment()
 {
-    return const_min(size_t(platform<>::native_vector_alignment), next_poweroftwo(sizeof(T) * N));
+    return std::min(size_t(platform<>::native_vector_alignment), next_poweroftwo(sizeof(T) * N));
 }
 
 template <typename T, size_t N>
@@ -90,18 +90,18 @@ struct simd_halves
     subtype low;
     subtype high;
 #if defined KFR_DEFINE_CTORS_FOR_HALVES && KFR_DEFINE_CTORS_FOR_HALVES
-    simd_halves() CMT_NOEXCEPT {}
-    simd_halves(const subtype& l, const subtype& h) CMT_NOEXCEPT : low(l), high(h) {}
-    simd_halves(const simd_halves& v) CMT_NOEXCEPT : low(v.low), high(v.high) {}
-    simd_halves(simd_halves&& v) CMT_NOEXCEPT : low(v.low), high(v.high) {}
+    simd_halves() noexcept {}
+    simd_halves(const subtype& l, const subtype& h) noexcept : low(l), high(h) {}
+    simd_halves(const simd_halves& v) noexcept : low(v.low), high(v.high) {}
+    simd_halves(simd_halves&& v) noexcept : low(v.low), high(v.high) {}
 
-    simd_halves& operator=(const simd_halves& v) CMT_NOEXCEPT
+    simd_halves& operator=(const simd_halves& v) noexcept
     {
         low  = v.low;
         high = v.high;
         return *this;
     }
-    simd_halves& operator=(simd_halves&& v) CMT_NOEXCEPT
+    simd_halves& operator=(simd_halves&& v) noexcept
     {
         low  = v.low;
         high = v.high;
@@ -110,8 +110,8 @@ struct simd_halves
 #endif
 };
 
-} // namespace intrinsics
-} // namespace CMT_ARCH_NAME
+} // namespace intr
+} // namespace KFR_ARCH_NAME
 
 #define KFR_COMPONENTWISE_RET(code)                                                                          \
     vec<T, N> result;                                                                                        \

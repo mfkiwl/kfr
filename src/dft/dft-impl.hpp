@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -29,28 +29,28 @@
 #include <kfr/base/simd_expressions.hpp>
 #include "dft-fft.hpp"
 
-CMT_PRAGMA_GNU(GCC diagnostic push)
-#if CMT_HAS_WARNING("-Wshadow")
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wshadow")
+KFR_PRAGMA_GNU(GCC diagnostic push)
+#if KFR_HAS_WARNING("-Wshadow")
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wshadow")
 #endif
-#if CMT_HAS_WARNING("-Wunused-lambda-capture")
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wunused-lambda-capture")
+#if KFR_HAS_WARNING("-Wunused-lambda-capture")
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wunused-lambda-capture")
 #endif
-#if CMT_HAS_WARNING("-Wpass-failed")
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wpass-failed")
+#if KFR_HAS_WARNING("-Wpass-failed")
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wpass-failed")
 #endif
 
-CMT_PRAGMA_MSVC(warning(push))
-CMT_PRAGMA_MSVC(warning(disable : 4100))
+KFR_PRAGMA_MSVC(warning(push))
+KFR_PRAGMA_MSVC(warning(disable : 4100))
 
 namespace kfr
 {
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 constexpr csizes_t<2, 3, 4, 5, 6, 7, 8, 9, 10> dft_radices{};
 
-namespace intrinsics
+namespace intr
 {
 
 template <typename T>
@@ -63,16 +63,16 @@ void dft_stage_fixed_initialize(dft_stage<T>* stage, size_t width)
 
     while (width > 0)
     {
-        CMT_LOOP_NOUNROLL
+        KFR_LOOP_NOUNROLL
         for (; i < Nord / width * width; i += width)
         {
-            CMT_LOOP_NOUNROLL
+            KFR_LOOP_NOUNROLL
             for (size_t j = 1; j < stage->radix; j++)
             {
-                CMT_LOOP_NOUNROLL
+                KFR_LOOP_NOUNROLL
                 for (size_t k = 0; k < width; k++)
                 {
-                    cvec<T, 1> xx = cossin_conj(broadcast<2, T>(c_pi<T, 2> * (i + k) * j / N));
+                    cvec<T, 1> xx                    = calculate_twiddle<T>((i + k) * j, N);
                     ref_cast<cvec<T, 1>>(twiddle[k]) = xx;
                 }
                 twiddle += width;
@@ -112,7 +112,7 @@ struct dft_stage_fixed_impl : dft_stage<T>
         const complex<T>* twiddle = ptr_cast<complex<T>>(this->data);
 
         const size_t N = Nord * fixed_radix;
-        CMT_LOOP_NOUNROLL
+        KFR_LOOP_NOUNROLL
         for (size_t b = 0; b < this->blocks; b++)
         {
             butterflies(Nord, csize<width>, csize<fixed_radix>, cbool<inverse>, out, in, twiddle, Nord);
@@ -150,15 +150,15 @@ struct dft_stage_fixed_final_impl : dft_stage<T>
 };
 
 template <typename E>
-inline E& apply_conj(E& e, cfalse_t)
+inline decltype(auto) apply_conj(E&& e, cfalse_t)
 {
-    return e;
+    return std::forward<E>(e);
 }
 
 template <typename E>
-inline auto apply_conj(E& e, ctrue_t)
+inline auto apply_conj(E&& e, ctrue_t)
 {
-    return cconj(e);
+    return cconj(std::forward<E>(e));
 }
 
 /// [0, N - 1, N - 2, N - 3, ..., 3, 2, 1]
@@ -167,7 +167,7 @@ struct fft_inverse : expression_with_traits<E>
 {
     using value_type = typename expression_with_traits<E>::value_type;
 
-    KFR_MEM_INTRINSIC fft_inverse(E&& expr) CMT_NOEXCEPT : expression_with_traits<E>(std::forward<E>(expr)) {}
+    KFR_MEM_INTRINSIC fft_inverse(E&& expr) noexcept : expression_with_traits<E>(std::forward<E>(expr)) {}
 
     friend KFR_INTRINSIC vec<value_type, 1> get_elements(const fft_inverse& self, shape<1> index,
                                                          axis_params<0, 1>)
@@ -199,8 +199,18 @@ inline auto apply_fft_inverse(E&& e)
 template <typename T>
 struct dft_arblen_stage_impl : dft_stage<T>
 {
+    static complex<T> accurate_cexp(size_t k, size_t N)
+    {
+        size_t kk = k % (N / 2);
+        complex<T> result{ std::cos(kk * c_pi<T, 2> / N), -std::sin(kk * c_pi<T, 2> / N) };
+
+        if (k >= N / 2)
+            result = -result;
+        return result;
+    }
+
     dft_arblen_stage_impl(size_t size)
-        : size(size), fftsize(next_poweroftwo(size) * 2), plan(fftsize, dft_order::internal)
+        : size(size), fftsize(next_poweroftwo(size * 2 - 1)), plan(fftsize, dft_order::internal)
     {
         this->name        = dft_name(this);
         this->radix       = size;
@@ -208,19 +218,29 @@ struct dft_arblen_stage_impl : dft_stage<T>
         this->repeats     = 1;
         this->recursion   = false;
         this->can_inplace = false;
-        this->temp_size   = plan.temp_size;
+        this->temp_size   = plan.temp_size + fftsize * sizeof(complex<T>);
         this->stage_size  = size;
 
-        chirp_ = render(cexp(sqr(linspace(T(1) - size, size - T(1), size * 2 - 1, true, ctrue)) *
-                             complex<T>(0, -1) * c_pi<T> / size));
+        chirp_.resize(size);
+        chirp_[0] = complex<T>(1, 0);
+        size_t k  = 0;
+        for (size_t m = 1; m < size; ++m)
+        {
+            k += 2 * m - 1;
+            if (k >= 2 * size)
+                k -= 2 * size;
+            chirp_[m] = accurate_cexp(k, size * 2);
+        }
 
-        ichirpp_ = render(truncate(padded(1 / slice(chirp_, 0, 2 * size - 1)), fftsize));
+        T fct = T(1) / fftsize;
+        ichirpp_.resize(fftsize, 0);
+        ichirpp_.slice(0, size)                      = chirp_ * fct;
+        ichirpp_.slice(fftsize - size + 1, size - 1) = reverse(chirp_.slice(1) * fct);
 
         univector<u8> temp(plan.temp_size);
         plan.execute(ichirpp_, ichirpp_, temp);
-        xp.resize(fftsize, 0);
-        xp_fft.resize(fftsize);
-        invN2 = T(1) / fftsize;
+
+        ichirpp_.resize(fftsize / 2 + 1);
     }
 
     DFT_STAGE_FN
@@ -229,29 +249,32 @@ struct dft_arblen_stage_impl : dft_stage<T>
     {
         const size_t n = this->size;
 
+        auto xp = make_univector(ptr_cast<complex<T>>(temp), fftsize);
+        u8* tmp = ptr_cast<u8>(ptr_cast<complex<T>>(temp) + fftsize);
+
         auto&& chirp = apply_conj(chirp_, cbool<inverse>);
 
-        xp.slice(0, n) = make_univector(in, n) * slice(chirp, n - 1);
+        xp.slice(0, n)           = make_univector(in, n) * chirp;
+        xp.slice(n, fftsize - n) = scalar(complex<T>(0, 0));
 
-        plan.execute(xp_fft.data(), xp.data(), temp);
+        plan.execute(xp.data(), xp.data(), tmp);
 
-        if (inverse)
-            xp_fft = xp_fft * cconj(apply_fft_inverse(ichirpp_));
-        else
-            xp_fft = xp_fft * ichirpp_;
-        plan.execute(xp_fft.data(), xp_fft.data(), temp, ctrue);
+        xp[0] *= apply_conj(ichirpp_[0], cbool<!inverse>);
+        xp.slice(1, fftsize / 2 - 1) *= apply_conj(ichirpp_.slice(1, fftsize / 2 - 1), cbool<!inverse>);
+        xp.slice(fftsize / 2 + 1, fftsize / 2 - 1) *=
+            apply_conj(reverse(ichirpp_.slice(1, fftsize / 2 - 1)), cbool<!inverse>);
+        xp[fftsize / 2] *= apply_conj(ichirpp_[fftsize / 2], cbool<!inverse>);
 
-        make_univector(out, n) = xp_fft.slice(n - 1, n) * slice(chirp, n - 1, n) * invN2;
+        plan.execute(xp.data(), xp.data(), tmp, ctrue);
+
+        make_univector(out, n) = xp.slice(0, n) * chirp;
     }
 
     const size_t size;
     const size_t fftsize;
-    T invN2;
     dft_plan<T> plan;
     univector<complex<T>> chirp_;
     univector<complex<T>> ichirpp_;
-    univector<complex<T>> xp;
-    univector<complex<T>> xp_fft;
 };
 
 template <typename T, size_t radix1, size_t radix2, size_t size = radix1 * radix2>
@@ -317,13 +340,13 @@ protected:
     virtual void do_initialize(size_t) override final
     {
         complex<T>* twiddle = ptr_cast<complex<T>>(this->data);
-        CMT_LOOP_NOUNROLL
+        KFR_LOOP_NOUNROLL
         for (size_t i = 0; i < this->radix / 2; i++)
         {
-            CMT_LOOP_NOUNROLL
+            KFR_LOOP_NOUNROLL
             for (size_t j = 0; j < this->radix / 2; j++)
             {
-                cwrite<1>(twiddle++, cossin_conj(broadcast<2>((i + 1) * (j + 1) * c_pi<T, 2> / this->radix)));
+                cwrite<1>(twiddle++, calculate_twiddle<T>((i + 1) * (j + 1), this->radix));
             }
         }
     }
@@ -335,7 +358,7 @@ protected:
         const complex<T>* twiddle = ptr_cast<complex<T>>(this->data);
         const size_t bl           = this->blocks;
 
-        CMT_LOOP_NOUNROLL
+        KFR_LOOP_NOUNROLL
         for (size_t b = 0; b < bl; b++)
             generic_butterfly(this->radix, cbool<inverse>, out + b, in + b * this->radix,
                               ptr_cast<complex<T>>(temp), twiddle, bl);
@@ -345,18 +368,18 @@ protected:
 template <typename T, typename Tr2>
 inline void dft_permute(complex<T>* out, const complex<T>* in, size_t r0, size_t r1, Tr2 first_radix)
 {
-    CMT_ASSUME(r0 > 1);
-    CMT_ASSUME(r1 > 1);
+    KFR_ASSUME(r0 > 1);
+    KFR_ASSUME(r1 > 1);
 
-    CMT_LOOP_NOUNROLL
+    KFR_LOOP_NOUNROLL
     for (size_t p = 0; p < r0; p++)
     {
         const complex<T>* in1 = in;
-        CMT_LOOP_NOUNROLL
+        KFR_LOOP_NOUNROLL
         for (size_t i = 0; i < r1; i++)
         {
             const complex<T>* in2 = in1;
-            CMT_LOOP_UNROLL
+            KFR_LOOP_UNROLL
             for (size_t j = 0; j < first_radix; j++)
             {
                 *out++ = *in2;
@@ -376,11 +399,11 @@ inline void dft_permute_deep(complex<T>*& out, const complex<T>* in, const size_
     const size_t radix = radices[index];
     if (b)
     {
-        CMT_LOOP_NOUNROLL
+        KFR_LOOP_NOUNROLL
         for (size_t i = 0; i < radix; i++)
         {
             const complex<T>* in1 = in;
-            CMT_LOOP_UNROLL
+            KFR_LOOP_UNROLL
             for (size_t j = 0; j < first_radix; j++)
             {
                 *out++ = *in1;
@@ -393,7 +416,7 @@ inline void dft_permute_deep(complex<T>*& out, const complex<T>* in, const size_
     {
         const size_t steps        = radix;
         const size_t inscale_next = inscale * radix;
-        CMT_LOOP_NOUNROLL
+        KFR_LOOP_NOUNROLL
         for (size_t i = 0; i < steps; i++)
         {
             dft_permute_deep(out, in, radices, count, index - 1, inscale_next, inner_size, first_radix);
@@ -469,21 +492,21 @@ protected:
             });
     }
 };
-} // namespace intrinsics
+} // namespace intr
 
 template <bool is_final, typename T>
 void prepare_dft_stage(dft_plan<T>* self, size_t radix, size_t iterations, size_t blocks, cbool_t<is_final>)
 {
     return cswitch(
         dft_radices, radix,
-        [self, iterations, blocks](auto radix) CMT_INLINE_LAMBDA
+        [self, iterations, blocks](auto radix) KFR_INLINE_LAMBDA
         {
-            add_stage<std::conditional_t<is_final, intrinsics::dft_stage_fixed_final_impl<T, val_of(radix)>,
-                                         intrinsics::dft_stage_fixed_impl<T, val_of(radix)>>>(
-                self, radix, iterations, blocks);
+            add_stage<std::conditional_t<is_final, intr::dft_stage_fixed_final_impl<T, val_of(radix)>,
+                                         intr::dft_stage_fixed_impl<T, val_of(radix)>>>(self, radix,
+                                                                                        iterations, blocks);
         },
         [self, radix, iterations, blocks]()
-        { add_stage<intrinsics::dft_stage_generic_impl<T, is_final>>(self, radix, iterations, blocks); });
+        { add_stage<intr::dft_stage_generic_impl<T, is_final>>(self, radix, iterations, blocks); });
 }
 
 template <typename T>
@@ -491,11 +514,11 @@ void init_dft(dft_plan<T>* self, size_t size, dft_order)
 {
     if (size == 60)
     {
-        add_stage<intrinsics::dft_special_stage_impl<T, 6, 10>>(self);
+        add_stage<intr::dft_special_stage_impl<T, 6, 10>>(self);
     }
     else if (size == 48)
     {
-        add_stage<intrinsics::dft_special_stage_impl<T, 6, 8>>(self);
+        add_stage<intr::dft_special_stage_impl<T, 6, 8>>(self);
     }
     else
     {
@@ -518,7 +541,7 @@ void init_dft(dft_plan<T>* self, size_t size, dft_order)
         int num_stages = 0;
         if (cur_size >= 101)
         {
-            add_stage<intrinsics::dft_arblen_stage_impl<T>>(self, size);
+            add_stage<intr::dft_arblen_stage_impl<T>>(self, size);
             ++num_stages;
             self->arblen = true;
         }
@@ -554,15 +577,15 @@ void init_dft(dft_plan<T>* self, size_t size, dft_order)
             }
 
             if (num_stages > 2)
-                add_stage<intrinsics::dft_reorder_stage_impl<T>>(self, radices, radices_size);
+                add_stage<intr::dft_reorder_stage_impl<T>>(self, radices, radices_size);
         }
     }
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 } // namespace kfr
 
-CMT_PRAGMA_GNU(GCC diagnostic pop)
+KFR_PRAGMA_GNU(GCC diagnostic pop)
 
-CMT_PRAGMA_MSVC(warning(pop))
+KFR_PRAGMA_MSVC(warning(pop))

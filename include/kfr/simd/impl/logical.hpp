@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -28,15 +28,15 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 
-#if defined CMT_ARCH_SSE2 && defined KFR_NATIVE_INTRINSICS
+#if defined KFR_ARCH_SSE2 && defined KFR_NATIVE_INTRINSICS
 
-#if defined CMT_ARCH_SSE41
+#if defined KFR_ARCH_SSE41
 
 // horizontal OR
 KFR_INTRINSIC bool bittestany(const mu8sse& x) { return !_mm_testz_si128(x.v, x.v); }
@@ -59,7 +59,7 @@ KFR_INTRINSIC bool bittestall(const mi32sse& x) { return _mm_testc_si128(x.v, al
 KFR_INTRINSIC bool bittestall(const mi64sse& x) { return _mm_testc_si128(x.v, allonesvector(x).v); }
 #endif
 
-#if defined CMT_ARCH_AVX
+#if defined KFR_ARCH_AVX
 // horizontal OR
 KFR_INTRINSIC bool bittestany(const mf32sse& x) { return !_mm_testz_ps(x.v, x.v); }
 KFR_INTRINSIC bool bittestany(const mf64sse& x) { return !_mm_testz_pd(x.v, x.v); }
@@ -92,7 +92,7 @@ KFR_INTRINSIC bool bittestall(const mi16avx& x) { return _mm256_testc_si256(x.v,
 KFR_INTRINSIC bool bittestall(const mi32avx& x) { return _mm256_testc_si256(x.v, allonesvector(x).v); }
 KFR_INTRINSIC bool bittestall(const mi64avx& x) { return _mm256_testc_si256(x.v, allonesvector(x).v); }
 
-#if defined CMT_ARCH_AVX512
+#if defined KFR_ARCH_AVX512
 // horizontal OR
 KFR_INTRINSIC bool bittestany(const mf32avx512& x) { return _mm512_movepi32_mask(_mm512_castps_si512(x.v)); }
 KFR_INTRINSIC bool bittestany(const mf64avx512& x) { return _mm512_movepi64_mask(_mm512_castpd_si512(x.v)); }
@@ -125,7 +125,7 @@ KFR_INTRINSIC bool bittestall(const mi64avx512& x) { return !uint8_t(~_mm512_mov
 
 #endif
 
-#elif defined CMT_ARCH_SSE41
+#elif defined KFR_ARCH_SSE41
 KFR_INTRINSIC bool bittestany(const mf32sse& x)
 {
     return !_mm_testz_si128(bitcast<bit<u8>>(x).v, bitcast<bit<u8>>(x).v);
@@ -144,7 +144,7 @@ KFR_INTRINSIC bool bittestall(const mf64sse& x)
 }
 #endif
 
-#if !defined CMT_ARCH_SSE41
+#if !defined KFR_ARCH_SSE41
 
 KFR_INTRINSIC bool bittestany(const mf32sse& x) { return _mm_movemask_ps(x.v); }
 KFR_INTRINSIC bool bittestany(const mf64sse& x) { return _mm_movemask_pd(x.v); }
@@ -169,29 +169,33 @@ KFR_INTRINSIC bool bittestall(const mi32sse& x) { return !_mm_movemask_epi8((~x)
 KFR_INTRINSIC bool bittestall(const mi64sse& x) { return !_mm_movemask_epi8((~x).v); }
 #endif
 
-template <typename T, size_t N, KFR_ENABLE_IF(N < vector_width<T>)>
+template <typename T, size_t N>
+    requires(N < vector_width<T>)
 KFR_INTRINSIC bool bittestall(const mask<T, N>& a)
 {
     return bittestall(expand_simd(a, bit<T>(true)));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N >= vector_width<T>), typename = void>
+template <typename T, size_t N>
+    requires(N >= vector_width<T>)
 KFR_INTRINSIC bool bittestall(const mask<T, N>& a)
 {
     return bittestall(low(a)) && bittestall(high(a));
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(N < vector_width<T>)>
+template <typename T, size_t N>
+    requires(N < vector_width<T>)
 KFR_INTRINSIC bool bittestany(const mask<T, N>& a)
 {
     return bittestany(expand_simd(a, bit<T>(false)));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N >= vector_width<T>), typename = void>
+template <typename T, size_t N>
+    requires(N >= vector_width<T>)
 KFR_INTRINSIC bool bittestany(const mask<T, N>& a)
 {
     return bittestany(low(a)) || bittestany(high(a));
 }
 
-#elif CMT_ARCH_NEON && defined KFR_NATIVE_INTRINSICS
+#elif KFR_ARCH_NEON && defined KFR_NATIVE_INTRINSICS
 
 KFR_INTRINSIC bool bittestall(const mu32neon& a)
 {
@@ -224,23 +228,145 @@ KFR_INTRINSIC bool bittestall(const mi64neon& a) { return bittestall(bitcast<bit
 KFR_INTRINSIC bool bittestall(const mf32neon& a) { return bittestall(bitcast<bit<u32>>(a)); }
 KFR_INTRINSIC bool bittestall(const mf64neon& a) { return bittestall(bitcast<bit<u32>>(a)); }
 
-template <typename T, size_t N, KFR_ENABLE_IF(N < vector_width<T>)>
+template <typename T, size_t N>
+    requires(N < vector_width<T>)
 KFR_INTRINSIC bool bittestall(const mask<T, N>& a)
 {
     return bittestall(expand_simd(a, bit<T>(true)));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N >= vector_width<T>), typename = void>
+template <typename T, size_t N>
+    requires(N >= vector_width<T>)
 KFR_INTRINSIC bool bittestall(const mask<T, N>& a)
 {
     return bittestall(low(a)) && bittestall(high(a));
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(N < vector_width<T>)>
+template <typename T, size_t N>
+    requires(N < vector_width<T>)
 KFR_INTRINSIC bool bittestany(const mask<T, N>& a)
 {
     return bittestany(expand_simd(a, bit<T>(false)));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N >= vector_width<T>), typename = void>
+template <typename T, size_t N>
+    requires(N >= vector_width<T>)
+KFR_INTRINSIC bool bittestany(const mask<T, N>& a)
+{
+    return bittestany(low(a)) || bittestany(high(a));
+}
+
+#elif KFR_ARCH_RVV && defined KFR_NATIVE_INTRINSICS
+
+KFR_INTRINSIC bool bittestany(const mu8rvv& a)
+{
+    return simd<u8, 16>(__riscv_vredor_vs_i8m1_i8m1(a.v, a.v, 16))[0] & 0x80u;
+}
+KFR_INTRINSIC bool bittestany(const mu16rvv& a)
+{
+    return simd<u16, 8>(__riscv_vredor_vs_i16m1_i16m1(a.v, a.v, 8))[0] & 0x8000u;
+}
+KFR_INTRINSIC bool bittestany(const mu32rvv& a)
+{
+    return simd<u32, 4>(__riscv_vredor_vs_i32m1_i32m1(a.v, a.v, 4))[0] & 0x80000000u;
+}
+KFR_INTRINSIC bool bittestany(const mu64rvv& a)
+{
+    return simd<u64, 2>(__riscv_vredor_vs_i64m1_i64m1(a.v, a.v, 2))[0] & 0x8000000000000000ull;
+}
+KFR_INTRINSIC bool bittestany(const mi8rvv& a)
+{
+    return simd<i8, 16>(__riscv_vredor_vs_i8m1_i8m1(a.v, a.v, 16))[0] & 0x80;
+}
+KFR_INTRINSIC bool bittestany(const mi16rvv& a)
+{
+    return simd<i16, 8>(__riscv_vredor_vs_i16m1_i16m1(a.v, a.v, 8))[0] & 0x8000;
+}
+KFR_INTRINSIC bool bittestany(const mi32rvv& a)
+{
+    return simd<i32, 4>(__riscv_vredor_vs_i32m1_i32m1(a.v, a.v, 4))[0] & 0x80000000;
+}
+KFR_INTRINSIC bool bittestany(const mi64rvv& a)
+{
+    return simd<i64, 2>(__riscv_vredor_vs_i64m1_i64m1(a.v, a.v, 2))[0] & 0x8000000000000000ll;
+}
+KFR_INTRINSIC bool bittestany(const mf32rvv& a)
+{
+    return simd<u32, 4>(__riscv_vredor_vs_u32m1_u32m1(__riscv_vreinterpret_v_f32m1_u32m1(a.v),
+                                                      __riscv_vreinterpret_v_f32m1_u32m1(a.v), 4))[0] &
+           0x80000000u;
+}
+KFR_INTRINSIC bool bittestany(const mf64rvv& a)
+{
+    return simd<u64, 2>(__riscv_vredor_vs_u64m1_u64m1(__riscv_vreinterpret_v_f64m1_u64m1(a.v),
+                                                      __riscv_vreinterpret_v_f64m1_u64m1(a.v), 2))[0] &
+           0x8000000000000000ull;
+}
+
+KFR_INTRINSIC bool bittestall(const mu8rvv& a)
+{
+    return simd<u8, 16>(__riscv_vredand_vs_i8m1_i8m1(a.v, a.v, 16))[0] & 0x80u;
+}
+KFR_INTRINSIC bool bittestall(const mu16rvv& a)
+{
+    return simd<u16, 8>(__riscv_vredand_vs_i16m1_i16m1(a.v, a.v, 8))[0] & 0x8000u;
+}
+KFR_INTRINSIC bool bittestall(const mu32rvv& a)
+{
+    return simd<u32, 4>(__riscv_vredand_vs_i32m1_i32m1(a.v, a.v, 4))[0] & 0x80000000u;
+}
+KFR_INTRINSIC bool bittestall(const mu64rvv& a)
+{
+    return simd<u64, 2>(__riscv_vredand_vs_i64m1_i64m1(a.v, a.v, 2))[0] & 0x8000000000000000ull;
+}
+KFR_INTRINSIC bool bittestall(const mi8rvv& a)
+{
+    return simd<i8, 16>(__riscv_vredand_vs_i8m1_i8m1(a.v, a.v, 16))[0] & 0x80;
+}
+KFR_INTRINSIC bool bittestall(const mi16rvv& a)
+{
+    return simd<i16, 8>(__riscv_vredand_vs_i16m1_i16m1(a.v, a.v, 8))[0] & 0x8000;
+}
+KFR_INTRINSIC bool bittestall(const mi32rvv& a)
+{
+    return simd<i32, 4>(__riscv_vredand_vs_i32m1_i32m1(a.v, a.v, 4))[0] & 0x80000000;
+}
+KFR_INTRINSIC bool bittestall(const mi64rvv& a)
+{
+    return simd<i64, 2>(__riscv_vredand_vs_i64m1_i64m1(a.v, a.v, 2))[0] & 0x8000000000000000ll;
+}
+KFR_INTRINSIC bool bittestall(const mf32rvv& a)
+{
+    return simd<u32, 4>(__riscv_vredand_vs_u32m1_u32m1(__riscv_vreinterpret_v_f32m1_u32m1(a.v),
+                                                       __riscv_vreinterpret_v_f32m1_u32m1(a.v), 4))[0] &
+           0x80000000u;
+}
+KFR_INTRINSIC bool bittestall(const mf64rvv& a)
+{
+    return simd<u64, 2>(__riscv_vredand_vs_u64m1_u64m1(__riscv_vreinterpret_v_f64m1_u64m1(a.v),
+                                                       __riscv_vreinterpret_v_f64m1_u64m1(a.v), 2))[0] &
+           0x8000000000000000ull;
+}
+
+template <typename T, size_t N>
+    requires(N < vector_width<T>)
+KFR_INTRINSIC bool bittestall(const mask<T, N>& a)
+{
+    return bittestall(expand_simd(a, bit<T>(true)));
+}
+template <typename T, size_t N>
+    requires(N >= vector_width<T>)
+KFR_INTRINSIC bool bittestall(const mask<T, N>& a)
+{
+    return bittestall(low(a)) && bittestall(high(a));
+}
+
+template <typename T, size_t N>
+    requires(N < vector_width<T>)
+KFR_INTRINSIC bool bittestany(const mask<T, N>& a)
+{
+    return bittestany(expand_simd(a, bit<T>(false)));
+}
+template <typename T, size_t N>
+    requires(N >= vector_width<T>)
 KFR_INTRINSIC bool bittestany(const mask<T, N>& a)
 {
     return bittestany(low(a)) || bittestany(high(a));
@@ -254,7 +380,7 @@ KFR_INTRINSIC bitmask<N> getmask(const mask<T, N>& x)
     typename bitmask<N>::type val = 0;
     for (size_t i = 0; i < N; i++)
     {
-        val |= static_cast<int>(x[i]) << i;
+        val |= static_cast<int>(static_cast<bool>(x[i])) << i;
     }
     return val;
 }
@@ -281,6 +407,6 @@ KFR_INTRINSIC bool bittestall(const mask<T, N>& x, const mask<T, N>& y)
     return !bittestany(~x & y);
 }
 #endif
-} // namespace intrinsics
-} // namespace CMT_ARCH_NAME
+} // namespace intr
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

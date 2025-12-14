@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+# Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
 # This file is part of KFR
 #
 # KFR is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with KFR.
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
 # Binary output directories
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR}/bin)
@@ -41,7 +41,8 @@ if (KFR_ENABLE_DFT)
 endif ()
 
 add_executable(sample_rate_conversion sample_rate_conversion.cpp)
-target_link_libraries(sample_rate_conversion kfr kfr_io kfr_dsp use_arch)
+target_link_libraries(sample_rate_conversion kfr kfr_io kfr_dsp kfr_audio
+                      use_arch)
 
 if (KFR_ENABLE_DFT)
     add_executable(dft dft.cpp)

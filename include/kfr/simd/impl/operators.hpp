@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 
 #include "function.hpp"
 
-#ifdef CMT_CLANG_EXT
+#ifdef KFR_VEC_EXT
 #include "basicoperators_clang.hpp"
 #else
 #include "basicoperators_generic.hpp"
@@ -37,9 +37,9 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
-namespace intrinsics
+namespace intr
 {
 
 #define KFR_VECVEC_OP1(fn)                                                                                   \
@@ -50,32 +50,32 @@ namespace intrinsics
     }
 
 #define KFR_VECVEC_OP2(fn)                                                                                   \
-    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>,       \
-              KFR_ENABLE_IF(is_simd_type<C>)>                                                                \
+    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>>       \
+        requires(is_simd_type<C>)                                                                            \
     KFR_INTRINSIC vec<vec<C, N1>, N2> fn(const vec<vec<T1, N1>, N2>& x, const vec<vec<T2, N1>, N2>& y)       \
     {                                                                                                        \
         return fn(broadcastto<C>(x.flatten()), broadcastto<C>(y.flatten())).v;                               \
     }                                                                                                        \
-    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>,       \
-              KFR_ENABLE_IF(is_simd_type<C>)>                                                                \
+    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>>       \
+        requires(is_simd_type<C>)                                                                            \
     KFR_INTRINSIC vec<vec<C, N1>, N2> fn(const vec<vec<T1, N1>, N2>& x, const T2& y)                         \
     {                                                                                                        \
         return fn(broadcastto<C>(x.flatten()), broadcastto<C>(y)).v;                                         \
     }                                                                                                        \
-    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>,       \
-              KFR_ENABLE_IF(is_simd_type<C>)>                                                                \
+    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>>       \
+        requires(is_simd_type<C>)                                                                            \
     KFR_INTRINSIC vec<vec<C, N1>, N2> fn(const vec<vec<T1, N1>, N2>& x, const vec<T2, N1>& y)                \
     {                                                                                                        \
         return fn(broadcastto<C>(x.flatten()), repeat<N2>(broadcastto<C>(y.flatten()))).v;                   \
     }                                                                                                        \
-    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>,       \
-              KFR_ENABLE_IF(is_simd_type<C>)>                                                                \
+    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>>       \
+        requires(is_simd_type<C>)                                                                            \
     KFR_INTRINSIC vec<vec<C, N1>, N2> fn(const T1& x, const vec<vec<T2, N1>, N2>& y)                         \
     {                                                                                                        \
         return fn(broadcastto<C>(x), broadcastto<C>(y.flatten())).v;                                         \
     }                                                                                                        \
-    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>,       \
-              KFR_ENABLE_IF(is_simd_type<C>)>                                                                \
+    template <typename T1, typename T2, size_t N1, size_t N2, typename C = std::common_type_t<T1, T2>>       \
+        requires(is_simd_type<C>)                                                                            \
     KFR_INTRINSIC vec<vec<C, N1>, N2> fn(const vec<T1, N1>& x, const vec<vec<T2, N1>, N2>& y)                \
     {                                                                                                        \
         return fn(repeat<N2>(broadcastto<C>(x.flatten())), broadcastto<C>(y.flatten())).v;                   \
@@ -92,6 +92,6 @@ KFR_VECVEC_OP2(band)
 KFR_VECVEC_OP2(bor)
 KFR_VECVEC_OP2(bxor)
 
-} // namespace intrinsics
-} // namespace CMT_ARCH_NAME
+} // namespace intr
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

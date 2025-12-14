@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -27,7 +27,7 @@
 
 #include <optional>
 
-#include "../cometa/array.hpp"
+#include "../meta/array.hpp"
 
 #include "../simd/horizontal.hpp"
 #include "../simd/impl/function.hpp"
@@ -40,8 +40,8 @@
 #include "shape.hpp"
 #include "transpose.hpp"
 
-CMT_PRAGMA_MSVC(warning(push))
-CMT_PRAGMA_MSVC(warning(disable : 4324))
+KFR_PRAGMA_MSVC(warning(push))
+KFR_PRAGMA_MSVC(warning(disable : 4324))
 
 namespace kfr
 {
@@ -102,8 +102,8 @@ struct tensor : public tensor_subscript<T, tensor<T, NDims>, std::make_integer_s
 {
 public:
     using value_type      = T;
-    using pointer         = T* CMT_RESTRICT;
-    using const_pointer   = const T* CMT_RESTRICT;
+    using pointer         = T* KFR_RESTRICT;
+    using const_pointer   = const T* KFR_RESTRICT;
     using reference       = T&;
     using const_reference = const T&;
     using size_type       = index_t;
@@ -237,7 +237,8 @@ public:
     }
 
     /// @brief Initialize with braced list. Defined for 2D tensor only
-    template <typename U, KFR_ENABLE_IF(std::is_convertible_v<U, T>&& dims == 2)>
+    template <std::convertible_to<T> U>
+        requires(dims == 2)
     KFR_INTRINSIC tensor(const std::initializer_list<std::initializer_list<U>>& values)
         : tensor(shape_type(values.size(), values.begin()->size()))
     {
@@ -245,7 +246,8 @@ public:
     }
 
     /// @brief Initialize with braced list. Defined for 3D tensor only
-    template <typename U, KFR_ENABLE_IF(std::is_convertible_v<U, T>&& dims == 3)>
+    template <std::convertible_to<T> U>
+        requires(dims == 3)
     KFR_INTRINSIC tensor(const std::initializer_list<std::initializer_list<std::initializer_list<U>>>& values)
         : tensor(shape_type(values.size(), values.begin()->size(), values.begin()->begin()->size()))
     {
@@ -253,7 +255,8 @@ public:
     }
 
     /// @brief Initialize with braced list. Defined for 4D tensor only
-    template <typename U, KFR_ENABLE_IF(std::is_convertible_v<U, T>&& dims == 4)>
+    template <std::convertible_to<T> U>
+        requires(dims == 4)
     KFR_INTRINSIC tensor(
         const std::initializer_list<std::initializer_list<std::initializer_list<std::initializer_list<U>>>>&
             values)
@@ -271,7 +274,7 @@ public:
         std::copy(values.begin(), values.end(), begin());
     }
 
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     KFR_MEM_INTRINSIC tensor(Input&& input) : tensor(get_shape(input))
     {
         static_assert(expression_traits<Input>::dims == dims);
@@ -338,7 +341,7 @@ public:
         };
     }
 
-#if defined(CMT_COMPILER_IS_MSVC)
+#if defined(KFR_COMPILER_IS_MSVC)
     tensor(const tensor& other)
         : m_data(other.m_data), m_size(other.m_size), m_is_contiguous(other.m_is_contiguous),
           m_shape(other.m_shape), m_strides(other.m_strides), m_finalizer(other.m_finalizer)
@@ -353,12 +356,12 @@ public:
     tensor(const tensor&& other) : tensor(static_cast<const tensor&>(other)) {}
 #else
     tensor(const tensor&) = default;
-    tensor(tensor&&) = default;
+    tensor(tensor&&)      = default;
     tensor(tensor& other) : tensor(const_cast<const tensor&>(other)) {}
     tensor(const tensor&& other) : tensor(static_cast<const tensor&>(other)) {}
 #endif
 
-#if defined(CMT_COMPILER_IS_MSVC) || true
+#if defined(KFR_COMPILER_IS_MSVC) || true
     tensor& operator=(const tensor& src) &
     {
         this->~tensor();
@@ -468,7 +471,7 @@ public:
                                       cvals_t<index_t, Num...> indices, const std::tuple<Index...>& idx) const
     {
         cforeach(indices,
-                 [&](auto i_) CMT_INLINE_LAMBDA
+                 [&](auto i_) KFR_INLINE_LAMBDA
                  {
                      constexpr index_t i  = val_of(decltype(i_)());
                      signed_index_t tsize = static_cast<signed_index_t>(m_shape[i]);
@@ -812,30 +815,63 @@ public:
 
     KFR_MEM_INTRINSIC memory_finalizer finalizer() const { return m_finalizer; }
 
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     KFR_MEM_INTRINSIC const tensor& operator=(Input&& input) const&
     {
         process(*this, input);
         return *this;
     }
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     KFR_MEM_INTRINSIC tensor& operator=(Input&& input) &&
     {
         process(*this, input);
         return *this;
     }
-    template <typename Input, KFR_ACCEPT_EXPRESSIONS(Input)>
+    template <expression_argument Input>
     KFR_MEM_INTRINSIC tensor& operator=(Input&& input) &
     {
         process(*this, input);
         return *this;
     }
 
-    bool operator==(const tensor& other) const
+    friend bool operator==(const tensor& lhs, const tensor& rhs)
     {
-        return shape() == other.shape() && std::equal(begin(), end(), other.begin());
+        return lhs.shape() == rhs.shape() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
     }
-    bool operator!=(const tensor& other) const { return !operator==(other); }
+    friend bool operator==(const tensor& lhs, tensor&& rhs)
+    {
+        return lhs.shape() == rhs.shape() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+    friend bool operator==(const tensor& lhs, tensor& rhs)
+    {
+        return lhs.shape() == rhs.shape() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
+    friend bool operator==(tensor&& lhs, const tensor& rhs)
+    {
+        return lhs.shape() == rhs.shape() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+    friend bool operator==(tensor&& lhs, tensor&& rhs)
+    {
+        return lhs.shape() == rhs.shape() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+    friend bool operator==(tensor&& lhs, tensor& rhs)
+    {
+        return lhs.shape() == rhs.shape() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+
+    friend bool operator==(tensor& lhs, const tensor& rhs)
+    {
+        return lhs.shape() == rhs.shape() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+    friend bool operator==(tensor& lhs, tensor&& rhs)
+    {
+        return lhs.shape() == rhs.shape() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
+    friend bool operator==(tensor& lhs, tensor& rhs)
+    {
+        return lhs.shape() == rhs.shape() && std::equal(lhs.begin(), lhs.end(), rhs.begin());
+    }
 
     KFR_MEM_INTRINSIC const shape_type& shape() const { return m_shape; }
     KFR_MEM_INTRINSIC const shape_type& strides() const { return m_strides; }
@@ -853,15 +889,15 @@ public:
             if (empty())
                 return {};
             else
-                return as_string(wrap_fmt(access(shape_type{}), cometa::ctype<Fmt>));
+                return as_string(wrap_fmt(access(shape_type{}), kfr::ctype<Fmt>));
         }
         else
         {
-            return cometa::array_to_string<Fmt>(
+            return kfr::array_to_string<Fmt>(
                 m_shape.template to_std_array<size_t>(),
-                [this](std::array<size_t, dims> index) CMT_INLINE_LAMBDA
-                { return access(shape_type::from_std_array(index)); },
-                max_columns, max_dimensions, std::move(separator), std::move(open), std::move(close));
+                [this](std::array<size_t, dims> index) KFR_INLINE_LAMBDA
+                { return access(shape_type::from_std_array(index)); }, max_columns, max_dimensions,
+                std::move(separator), std::move(open), std::move(close));
         }
     }
 
@@ -892,8 +928,7 @@ struct tensor<T, dynamic_shape>
 // private:
 // };
 
-template <typename Container, CMT_ENABLE_IF(kfr::has_data_size<Container>),
-          typename T = typename Container::value_type>
+template <has_data_size Container, typename T = typename Container::value_type>
 KFR_INTRINSIC tensor<T, 1> tensor_from_container(Container container)
 {
     using container_finalizer = internal_generic::memory_finalizer_data<Container>;
@@ -917,7 +952,7 @@ struct expression_traits<tensor<T, Dims>> : expression_traits_defaults
     KFR_MEM_INTRINSIC constexpr static shape<dims> get_shape() { return shape<dims>{ undefined_size }; }
 };
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, index_t NDims, index_t Axis, size_t N>
@@ -941,7 +976,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const tensor<T, NDims>& self, const shape<N
 
 template <typename T, index_t NDims, index_t Axis, size_t N>
 KFR_INTRINSIC void set_elements(const tensor<T, NDims>& self, const shape<NDims>& index,
-                                const axis_params<Axis, N>&, const identity<vec<T, N>>& value)
+                                const axis_params<Axis, N>&, const std::type_identity_t<vec<T, N>>& value)
 {
     static_assert(Axis < NDims || NDims == 0);
     T* data = self.data() + self.calc_index(index);
@@ -977,11 +1012,11 @@ tensor<typename Traits::value_type, Traits::dims> trender(const E& expr, shape<T
     return result;
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 } // namespace kfr
 
-namespace cometa
+namespace kfr
 {
 template <typename T, kfr::index_t dims>
 struct representation<kfr::tensor<T, dims>>
@@ -1000,6 +1035,6 @@ struct representation<fmt_t<kfr::tensor<T, dims>, t, width, prec>>
     }
 };
 
-} // namespace cometa
+} // namespace kfr
 
-CMT_PRAGMA_MSVC(warning(pop))
+KFR_PRAGMA_MSVC(warning(pop))

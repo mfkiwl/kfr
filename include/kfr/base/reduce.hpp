@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -35,7 +35,7 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T>
@@ -52,16 +52,20 @@ KFR_INTRINSIC T final_rootmean(T value, size_t size)
 }
 KFR_FN(final_rootmean)
 
-template <typename FinalFn, typename T, KFR_ENABLE_IF(std::is_invocable_v<FinalFn, T, size_t>)>
-KFR_INTRINSIC auto reduce_call_final(FinalFn&& finalfn, size_t size, T value)
+namespace internal
 {
-    return finalfn(value, size);
-}
-template <typename FinalFn, typename T, KFR_ENABLE_IF(std::is_invocable_v<FinalFn, size_t>)>
-KFR_INTRINSIC auto reduce_call_final(FinalFn&& finalfn, size_t, T value)
+struct reduce_final_helper
 {
-    return finalfn(value);
-}
+    template <typename T, typename FinalFn>
+    auto operator()(FinalFn&& finalfn, size_t size, T value) const
+    {
+        if constexpr (std::is_invocable_v<FinalFn, T, size_t>)
+            return std::forward<FinalFn>(finalfn)(value, size);
+        else
+            return std::forward<FinalFn>(finalfn)(value);
+    }
+};
+} // namespace internal
 
 template <typename Tout, index_t Dims, typename Twork, typename Tin, typename ReduceFn, typename TransformFn,
           typename FinalFn>
@@ -80,11 +84,14 @@ struct expression_reduce : public expression_traits_defaults
     {
     }
 
-    KFR_MEM_INTRINSIC Tout get() { return reduce_call_final(finalfn, counter, horizontal(value, reducefn)); }
+    KFR_MEM_INTRINSIC Tout get()
+    {
+        return internal::reduce_final_helper{}(finalfn, counter, horizontal(value, reducefn));
+    }
 
     template <size_t N, index_t VecAxis>
     friend KFR_INTRINSIC void set_elements(expression_reduce& self, shape<Dims>, axis_params<VecAxis, N>,
-                                           const identity<vec<Tin, N>>& x)
+                                           const std::type_identity_t<vec<Tin, N>>& x)
     {
         self.counter += N;
         self.process(x);
@@ -97,13 +104,15 @@ protected:
         value = reducefn(transformfn(x), value);
     }
 
-    template <size_t N, KFR_ENABLE_IF(N < width)>
+    template <size_t N>
+        requires(N < width)
     KFR_MEM_INTRINSIC void process(const vec<Tin, N>& x) const
     {
         value = combine(value, reducefn(transformfn(x), narrow<N>(value)));
     }
 
-    template <size_t N, KFR_ENABLE_IF(N > width)>
+    template <size_t N>
+        requires(N > width)
     KFR_MEM_INTRINSIC void process(const vec<Tin, N>& x) const
     {
         process(low(x));
@@ -117,12 +126,12 @@ protected:
     mutable vec<Twork, width> value;
 };
 
-template <typename ReduceFn, typename TransformFn = fn_generic::pass_through,
-          typename FinalFn = fn_generic::pass_through, typename E1, typename Tin = expression_value_type<E1>,
-          typename Twork = std::decay_t<decltype(std::declval<TransformFn>()(std::declval<Tin>()))>,
-          typename Tout  = std::decay_t<decltype(reduce_call_final(
-              std::declval<FinalFn>(), std::declval<size_t>(), std::declval<Twork>()))>,
-          KFR_ENABLE_IF(is_input_expression<E1>)>
+template <
+    typename ReduceFn, typename TransformFn = fn_generic::pass_through,
+    typename FinalFn = fn_generic::pass_through, input_expression E1,
+    typename Tin     = expression_value_type<E1>,
+    typename Twork   = std::decay_t<std::invoke_result_t<TransformFn, Tin>>,
+    typename Tout = std::decay_t<std::invoke_result_t<internal::reduce_final_helper, FinalFn, size_t, Twork>>>
 KFR_INTRINSIC Tout reduce(const E1& e1, ReduceFn&& reducefn,
                           TransformFn&& transformfn = fn_generic::pass_through(),
                           FinalFn&& finalfn         = fn_generic::pass_through())
@@ -137,12 +146,12 @@ KFR_INTRINSIC Tout reduce(const E1& e1, ReduceFn&& reducefn,
     return red.get();
 }
 
-template <typename ReduceFn, typename TransformFn = fn_generic::pass_through,
-          typename FinalFn = fn_generic::pass_through, typename E1, typename Tin = expression_value_type<E1>,
-          typename Twork = std::decay_t<decltype(std::declval<TransformFn>()(std::declval<Tin>()))>,
-          typename Tout  = std::decay_t<decltype(reduce_call_final(
-              std::declval<FinalFn>(), std::declval<size_t>(), std::declval<Twork>()))>,
-          KFR_ENABLE_IF(!is_input_expression<E1>)>
+template <
+    typename ReduceFn, typename TransformFn = fn_generic::pass_through,
+    typename FinalFn = fn_generic::pass_through, typename E1, typename Tin = expression_value_type<E1>,
+    typename Twork = std::decay_t<std::invoke_result_t<TransformFn, Tin>>,
+    typename Tout = std::decay_t<std::invoke_result_t<internal::reduce_final_helper, FinalFn, size_t, Twork>>>
+    requires(!input_expression<E1>)
 KFR_INTRINSIC Tout reduce(const E1& e1, ReduceFn&& reducefn,
                           TransformFn&& transformfn = fn_generic::pass_through(),
                           FinalFn&& finalfn         = fn_generic::pass_through())
@@ -154,7 +163,7 @@ KFR_INTRINSIC Tout reduce(const E1& e1, ReduceFn&& reducefn,
         result = reducefn(result, transformfn(in));
         ++counter;
     }
-    return reduce_call_final(finalfn, counter, result);
+    return internal::reduce_final_helper{}(finalfn, counter, result);
 }
 
 template <size_t Bins = 0, typename TCount = uint32_t>
@@ -196,7 +205,7 @@ struct histogram_data
             const vec<T, N> x = 1 + value;
             indices           = cast<uint64_t>(clamp(x, T(0), T(size() + 1)));
         }
-        CMT_LOOP_UNROLL
+        KFR_LOOP_UNROLL
         for (size_t i = 0; i < N; ++i)
             ++m_values[indices[i]];
         m_total += N;
@@ -245,7 +254,7 @@ struct expression_histogram : public expression_with_traits<E>
  *  x_0 + x_1 + \ldots + x_{N-1}
  * \f]
  */
-template <typename E1, typename T = expression_value_type<E1>, KFR_ENABLE_IF(is_input_expression<E1>)>
+template <input_expression E1, typename T = expression_value_type<E1>>
 KFR_FUNCTION T sum(const E1& x)
 {
     static_assert(!is_infinite<E1>, "e1 must be a sized expression (use slice())");
@@ -260,7 +269,7 @@ KFR_FUNCTION T sum(const E1& x)
  *  \frac{1}{N}(x_0 + x_1 + \ldots + x_{N-1})
  * \f]
  */
-template <typename E1, typename T = expression_value_type<E1>, KFR_ENABLE_IF(is_input_expression<E1>)>
+template <input_expression E1, typename T = expression_value_type<E1>>
 KFR_FUNCTION T mean(const E1& x)
 {
     static_assert(!is_infinite<E1>, "e1 must be a sized expression (use slice())");
@@ -272,7 +281,7 @@ KFR_FUNCTION T mean(const E1& x)
  *
  * x must have its size and type specified.
  */
-template <typename E1, typename T = expression_value_type<E1>, KFR_ENABLE_IF(is_input_expression<E1>)>
+template <input_expression E1, typename T = expression_value_type<E1>>
 KFR_FUNCTION T minof(const E1& x)
 {
     static_assert(!is_infinite<E1>, "e1 must be a sized expression (use slice())");
@@ -284,7 +293,7 @@ KFR_FUNCTION T minof(const E1& x)
  *
  * x must have its size and type specified.
  */
-template <typename E1, typename T = expression_value_type<E1>, KFR_ENABLE_IF(is_input_expression<E1>)>
+template <input_expression E1, typename T = expression_value_type<E1>>
 KFR_FUNCTION T maxof(const E1& x)
 {
     static_assert(!is_infinite<E1>, "e1 must be a sized expression (use slice())");
@@ -296,7 +305,7 @@ KFR_FUNCTION T maxof(const E1& x)
  *
  * x must have its size and type specified.
  */
-template <typename E1, typename T = expression_value_type<E1>, KFR_ENABLE_IF(is_input_expression<E1>)>
+template <input_expression E1, typename T = expression_value_type<E1>>
 KFR_FUNCTION T absminof(const E1& x)
 {
     static_assert(!is_infinite<E1>, "e1 must be a sized expression (use slice())");
@@ -308,7 +317,7 @@ KFR_FUNCTION T absminof(const E1& x)
  *
  * x must have its size and type specified.
  */
-template <typename E1, typename T = expression_value_type<E1>, KFR_ENABLE_IF(is_input_expression<E1>)>
+template <input_expression E1, typename T = expression_value_type<E1>>
 KFR_FUNCTION T absmaxof(const E1& x)
 {
     static_assert(!is_infinite<E1>, "e1 must be a sized expression (use slice())");
@@ -324,8 +333,8 @@ KFR_FUNCTION T absmaxof(const E1& x)
  * \f]
  */
 template <typename E1, typename E2,
-          typename T = expression_value_type<decltype(std::declval<E1>() * std::declval<E2>())>,
-          KFR_ACCEPT_EXPRESSIONS(E1, E2)>
+          typename T = expression_value_type<decltype(std::declval<E1>() * std::declval<E2>())>>
+    requires expression_arguments<E1, E2>
 KFR_FUNCTION T dotproduct(E1&& x, E2&& y)
 {
     auto m    = std::forward<E1>(x) * std::forward<E2>(y);
@@ -342,7 +351,7 @@ KFR_FUNCTION T dotproduct(E1&& x, E2&& y)
    \sqrt{\frac{1}{N}( x_0^2 + x_1^2 + \ldots + x_{N-1}^2)}
    \f]
  */
-template <typename E1, typename T = expression_value_type<E1>, KFR_ENABLE_IF(is_input_expression<E1>)>
+template <input_expression E1, typename T = expression_value_type<E1>>
 KFR_FUNCTION T rms(const E1& x)
 {
     static_assert(!is_infinite<E1>, "e1 must be a sized expression (use slice())");
@@ -357,7 +366,7 @@ KFR_FUNCTION T rms(const E1& x)
     x_0^2 + x_1^2 + \ldots + x_{N-1}^2
    \f]
  */
-template <typename E1, typename T = expression_value_type<E1>, KFR_ENABLE_IF(is_input_expression<E1>)>
+template <input_expression E1, typename T = expression_value_type<E1>>
 KFR_FUNCTION T sumsqr(const E1& x)
 {
     static_assert(!is_infinite<E1>, "e1 must be a sized expression (use slice())");
@@ -372,11 +381,79 @@ KFR_FUNCTION T sumsqr(const E1& x)
     x_0 \cdot x_1 \cdot \ldots \cdot x_{N-1}
    \f]
  */
-template <typename E1, typename T = expression_value_type<E1>, KFR_ENABLE_IF(is_input_expression<E1>)>
+template <input_expression E1, typename T = expression_value_type<E1>>
 KFR_FUNCTION T product(const E1& x)
 {
     static_assert(!is_infinite<E1>, "e1 must be a sized expression (use slice())");
     return reduce(x, fn::mul());
+}
+
+namespace internal
+{
+
+template <typename T>
+struct variance_helper
+{
+    template <size_t N>
+    KFR_MEM_INTRINSIC vec<vec<T, 2>, N> operator()(const vec<T, N>& x) const
+    {
+        vec<T, N> xmk  = x - k;
+        vec<T, N> xmk2 = xmk * xmk;
+        return vec<vec<T, 2>, N>::frombits(interleave(xmk, xmk2));
+    }
+    KFR_MEM_INTRINSIC vec<T, 2> operator()(const T& x) const
+    {
+        T xmk  = x - k;
+        T xmk2 = xmk * xmk;
+        return vec<T, 2>(xmk, xmk2);
+    }
+
+    T k;
+};
+} // namespace internal
+
+/**
+ * @brief Computes the variance of the given input expression.
+ *
+ * This function calculates the variance of the elements in the input expression `x`.
+ *
+ * @tparam E1 The type of the input expression.
+ * @tparam T The value type of the expression elements.
+ *
+ * @param x The input expression for which the variance is to be computed.
+ *          Must be a sized expression.
+ *
+ * @return The variance of the elements in the input expression.
+ */
+template <input_expression E1, typename T = expression_value_type<E1>>
+KFR_FUNCTION T variance(const E1& x)
+{
+    static_assert(!is_infinite<decltype(x)>, "e1 must be a sized expression (use slice())");
+    T k = get_element(x, shape{ 0 });
+    return reduce(x, fn::add(), internal::variance_helper<T>{ k },
+                  [](const vec<T, 2>& x, size_t count) KFR_INLINE_LAMBDA -> T
+                  {
+                      // x[0] = sum(x - mean), x[1] = sum((x - mean)^2)
+                      return (x[1] - sqr(x[0]) / T(count)) / T(count);
+                  });
+}
+
+/**
+ * @brief Computes the standard deviation of the given expression.
+ *
+ * This function calculates the standard deviation of the input expression `x`.
+ * The input must be a sized expression.
+ *
+ * @tparam T The return type of the standard deviation.
+ * @tparam E1 The type of the input expression.
+ * @param x The input expression for which the standard deviation is computed.
+ * @return The standard deviation of the input expression.
+ */
+template <input_expression E1, typename T = expression_value_type<E1>>
+KFR_FUNCTION T stddev(const E1& x)
+{
+    static_assert(!is_infinite<decltype(x)>, "e1 must be a sized expression (use slice())");
+    return sqrt(variance(x));
 }
 
 /**
@@ -419,5 +496,5 @@ KFR_FUNCTION histogram_data<Bins, TCount> histogram(E&& expr)
     return sink(histogram_expression<Bins>(std::forward<E>(expr))).data;
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

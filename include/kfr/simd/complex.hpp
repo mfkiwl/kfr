@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -29,14 +29,14 @@
 #include "operators.hpp"
 #include <complex>
 
-CMT_PRAGMA_MSVC(warning(push))
-CMT_PRAGMA_MSVC(warning(disable : 4814))
+KFR_PRAGMA_MSVC(warning(push))
+KFR_PRAGMA_MSVC(warning(disable : 4814))
 
 namespace kfr
 {
 
 } // namespace kfr
-namespace cometa
+namespace kfr
 {
 template <typename T>
 struct compound_type_traits<std::complex<T>>
@@ -44,9 +44,9 @@ struct compound_type_traits<std::complex<T>>
     constexpr static size_t width      = 2;
     constexpr static size_t deep_width = width * compound_type_traits<T>::width;
     using subtype                      = T;
-    using deep_subtype                 = cometa::deep_subtype<T>;
+    using deep_subtype                 = kfr::deep_subtype<T>;
     constexpr static bool is_scalar    = false;
-    constexpr static size_t depth      = cometa::compound_type_traits<T>::depth + 1;
+    constexpr static size_t depth      = kfr::compound_type_traits<T>::depth + 1;
     template <typename U>
     using rebind = std::complex<U>;
     template <typename U>
@@ -57,7 +57,7 @@ struct compound_type_traits<std::complex<T>>
         return index == 0 ? value.real() : value.imag();
     }
 };
-} // namespace cometa
+} // namespace kfr
 namespace kfr
 {
 
@@ -70,10 +70,10 @@ using c64 = complex<f64>;
 /// @brief Alias for complex<fbase>
 using cbase = complex<fbase>;
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 template <typename T>
 constexpr inline complex<T> vcomplex(const vec<T, 2>& v)
@@ -88,24 +88,23 @@ constexpr inline vec<T, 2> vcomplex(const complex<T>& v)
 template <typename T>
 constexpr inline simd<T, 2> vvcomplex(const complex<T>& v)
 {
-    return intrinsics::simd_make(cometa::ctype<T>, v.real(), v.imag());
+    return intr::simd_make(kfr::ctype<T>, v.real(), v.imag());
 }
-} // namespace intrinsics
+} // namespace intr
 
 template <typename T, size_t N, size_t... indices>
 KFR_INTRINSIC vec<complex<T>, sizeof...(indices)> shufflevector(const vec<complex<T>, N>& x,
-                                                                csizes_t<indices...>) CMT_NOEXCEPT
+                                                                csizes_t<indices...>) noexcept
 {
-    return intrinsics::simd_shuffle(intrinsics::simd_t<unwrap_bit<T>, N>{}, x.v, scale<2, indices...>(),
-                                    overload_auto);
+    return intr::simd_shuffle(intr::simd_t<unwrap_bit<T>, N>{}, x.v, scale<2, indices...>(), overload_auto);
 }
 template <typename T, size_t N, size_t... indices>
 KFR_INTRINSIC vec<complex<T>, sizeof...(indices)> shufflevectors(const vec<complex<T>, N>& x,
                                                                  const vec<T, N>& y,
-                                                                 csizes_t<indices...>) CMT_NOEXCEPT
+                                                                 csizes_t<indices...>) noexcept
 {
-    return intrinsics::simd_shuffle(intrinsics::simd2_t<unwrap_bit<T>, N, N>{}, x.v, y.v,
-                                    scale<2, indices...>(), overload_auto);
+    return intr::simd_shuffle(intr::simd2_t<unwrap_bit<T>, N, N>{}, x.v, y.v, scale<2, indices...>(),
+                              overload_auto);
 }
 namespace internal
 {
@@ -226,7 +225,7 @@ struct conversion<1, 1, vec<complex<To>, N>, vec<From, N>, conv>
 } // namespace internal
 
 /// @brief Returns the real part of the complex value
-template <typename T, KFR_ENABLE_IF(is_numeric<T>)>
+template <numeric T>
 constexpr KFR_INTRINSIC T real(const T& value)
 {
     return value;
@@ -277,15 +276,14 @@ constexpr KFR_INTRINSIC vec<complex<T>, N> make_complex(const vec<T1, N>& real,
 }
 
 /// @brief Constructs complex value from real and imaginary parts
-template <typename T1, typename T2 = T1, typename T = std::common_type_t<T1, T2>,
-          KFR_ENABLE_IF(is_numeric_args<T1, T2>)>
+template <numeric T1, numeric T2 = T1, typename T = std::common_type_t<T1, T2>>
 constexpr KFR_INTRINSIC complex<T> make_complex(T1 real, T2 imag = T2(0))
 {
     return complex<T>(promoteto<T>(real), promoteto<T>(imag));
 }
 KFR_FN(make_complex)
 
-namespace intrinsics
+namespace intr
 {
 template <typename T, size_t N>
 KFR_INTRINSIC vec<complex<T>, N> cconj(const vec<complex<T>, N>& x)
@@ -294,14 +292,14 @@ KFR_INTRINSIC vec<complex<T>, N> cconj(const vec<complex<T>, N>& x)
 }
 
 KFR_HANDLE_SCALAR(cconj)
-} // namespace intrinsics
+} // namespace intr
 KFR_I_FN(cconj)
 
 /// @brief Returns the complex conjugate of the complex number x
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_INTRINSIC T1 cconj(const T1& x)
 {
-    return intrinsics::cconj(x);
+    return intr::cconj(x);
 }
 
 template <size_t N>
@@ -310,7 +308,7 @@ struct vec_of_complex
     template <typename T>
     using type = vec<complex<T>, N>;
 };
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 template <typename T>
 constexpr bool is_complex = internal::is_complex_impl<T>::value;
@@ -345,4 +343,4 @@ struct common_type<kfr::vec<T1, N>, kfr::complex<T2>>
 };
 } // namespace std
 
-CMT_PRAGMA_MSVC(warning(pop))
+KFR_PRAGMA_MSVC(warning(pop))

@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -29,51 +29,51 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 /// @brief Returns the hyperbolic sine of the x
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> sinh(const T1& x)
 {
-    return intrinsics::sinh(x);
+    return intr::sinh(x);
 }
 
 /// @brief Returns the hyperbolic cosine of the x
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> cosh(const T1& x)
 {
-    return intrinsics::cosh(x);
+    return intr::cosh(x);
 }
 
 /// @brief Returns the hyperbolic tangent of the x
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> tanh(const T1& x)
 {
-    return intrinsics::tanh(x);
+    return intr::tanh(x);
 }
 
 /// @brief Returns the hyperbolic cotangent of the x
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> coth(const T1& x)
 {
-    return intrinsics::coth(x);
+    return intr::coth(x);
 }
 
 /// @brief Returns the hyperbolic sine of the even elements of the x and the hyperbolic cosine of the odd
 /// elements of the x
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> sinhcosh(const T1& x)
 {
-    return intrinsics::sinhcosh(x);
+    return intr::sinhcosh(x);
 }
 
 /// @brief Returns the hyperbolic cosine of the even elements of the x and the hyperbolic sine of the odd
 /// elements of the x
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> coshsinh(const T1& x)
 {
-    return intrinsics::coshsinh(x);
+    return intr::coshsinh(x);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

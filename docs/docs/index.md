@@ -1,13 +1,13 @@
-# KFR 6 Documentation
+# KFR 7 Documentation
 
 ## Getting started
 
-* [What's new in KFR 6](whatsnew6.md)
+* [What's new in KFR 7](whatsnew7.md)
 * [Installation](installation.md)
 * [Basics](basics.md)
 * [Expressions](expressions.md)
 * [C API](capi.md)
-* [Upgrade to KFR 6](upgrade6.md)
+* [Upgrade to KFR 7](upgrade7.md)
 
 ## Guides
 
@@ -33,14 +33,14 @@
 * [DFT data layout](dft_format.md)
 
 ### I/O
-* [How to read WAV file](read_audio.md)
+* [How to read or write audio file](read_audio.md)
 * [File types support](file_support.md)
 * [How to plot filter impulse response](plot.md)
 
 ## Function reference
 
-* [Function reference](auto/refindex.md)
+* [Function reference](auto/index.md)
 
-## KFR 5
+## KFR 6
 
-For KFR 5 documentation, see https://kfr.dev/docs/v5
+For KFR 6 documentation, see https://kfr.dev/docs/v6

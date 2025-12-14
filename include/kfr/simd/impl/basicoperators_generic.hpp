@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -27,16 +27,16 @@
 #include <algorithm>
 #include <utility>
 
-CMT_PRAGMA_MSVC(warning(push))
-CMT_PRAGMA_MSVC(warning(disable : 4700))
-CMT_PRAGMA_MSVC(warning(disable : 4309))
+KFR_PRAGMA_MSVC(warning(push))
+KFR_PRAGMA_MSVC(warning(disable : 4700))
+KFR_PRAGMA_MSVC(warning(disable : 4309))
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 
 #define KFR_DIV_MOD_FN(ty)                                                                                   \
@@ -49,7 +49,7 @@ namespace intrinsics
         KFR_COMPONENTWISE_RET_I(ty, result[i] = y[i] ? x[i] % y[i] : 0);                                     \
     }
 
-#if defined CMT_ARCH_SSE2 && defined KFR_NATIVE_INTRINSICS
+#if defined KFR_ARCH_SSE2 && defined KFR_NATIVE_INTRINSICS
 
 KFR_INTRINSIC __m128 _mm_allones_ps()
 {
@@ -119,7 +119,7 @@ KFR_INTRINSIC u32sse sub(const u32sse& x, const u32sse& y) { return _mm_sub_epi3
 KFR_INTRINSIC i32sse add(const i32sse& x, const i32sse& y) { return _mm_add_epi32(x.v, y.v); }
 KFR_INTRINSIC i32sse sub(const i32sse& x, const i32sse& y) { return _mm_sub_epi32(x.v, y.v); }
 
-#if defined CMT_ARCH_SSE41
+#if defined KFR_ARCH_SSE41
 KFR_INTRINSIC u32sse mul(const u32sse& x, const u32sse& y) { return _mm_mullo_epi32(x.v, y.v); }
 KFR_INTRINSIC i32sse mul(const i32sse& x, const i32sse& y) { return _mm_mullo_epi32(x.v, y.v); }
 #else
@@ -189,43 +189,61 @@ KFR_INTRINSIC i32sse shr(const i32sse& x, unsigned y) { return _mm_srai_epi32(x.
 
 KFR_INTRINSIC u8sse shl(const u8sse& x, unsigned y)
 {
-    __m128i l = _mm_unpacklo_epi8(_mm_setzero_si128(), x.v);
-    __m128i h = _mm_unpackhi_epi8(_mm_setzero_si128(), x.v);
-
-    __m128i ll = _mm_slli_epi16(l, y);
-    __m128i hh = _mm_slli_epi16(h, y);
-
-    return _mm_packs_epi16(ll, hh);
+    __m128i x0  = x.v;
+    __m128i cnt = _mm_cvtsi32_si128((int)y);
+    x0          = _mm_sll_epi16(x0, cnt);
+    __m128i x2  = _mm_set1_epi32(-1);
+    x2          = _mm_sll_epi16(x2, cnt);
+    x2          = _mm_unpacklo_epi8(x2, x2);
+    __m128i x1  = _mm_shufflelo_epi16(x2, 0x00);
+    x1          = _mm_shuffle_epi32(x1, 0x00);
+    x1          = _mm_and_si128(x1, x0);
+    return x1;
 }
 KFR_INTRINSIC i8sse shl(const i8sse& x, unsigned y)
 {
-    __m128i l = _mm_unpacklo_epi8(_mm_setzero_si128(), x.v);
-    __m128i h = _mm_unpackhi_epi8(_mm_setzero_si128(), x.v);
-
-    __m128i ll = _mm_slli_epi16(l, y);
-    __m128i hh = _mm_slli_epi16(h, y);
-
-    return _mm_packs_epi16(ll, hh);
+    __m128i x0  = x.v;
+    __m128i cnt = _mm_cvtsi32_si128((int)y);
+    x0          = _mm_sll_epi16(x0, cnt);
+    __m128i x2  = _mm_set1_epi32(-1);
+    x2          = _mm_sll_epi16(x2, cnt);
+    x2          = _mm_unpacklo_epi8(x2, x2);
+    __m128i x1  = _mm_shufflelo_epi16(x2, 0x00);
+    x1          = _mm_shuffle_epi32(x1, 0x00);
+    x1          = _mm_and_si128(x1, x0);
+    return x1;
 }
 KFR_INTRINSIC u8sse shr(const u8sse& x, unsigned y)
 {
-    __m128i l = _mm_unpacklo_epi8(_mm_setzero_si128(), x.v);
-    __m128i h = _mm_unpackhi_epi8(_mm_setzero_si128(), x.v);
-
-    __m128i ll = _mm_srli_epi16(l, y);
-    __m128i hh = _mm_srli_epi16(h, y);
-
-    return _mm_packs_epi16(ll, hh);
+    __m128i x0  = x.v;
+    __m128i cnt = _mm_cvtsi32_si128((int)y);
+    x0          = _mm_srl_epi16(x0, cnt);
+    __m128i x2  = _mm_set1_epi32(-1);
+    x2          = _mm_srl_epi16(x2, cnt);
+    x2          = _mm_srli_epi16(x2, 8);
+    x2          = _mm_unpacklo_epi8(x2, x2);
+    __m128i x1  = _mm_shufflelo_epi16(x2, 0x00);
+    x1          = _mm_shuffle_epi32(x1, 0x00);
+    x1          = _mm_and_si128(x1, x0);
+    return x1;
 }
 KFR_INTRINSIC i8sse shr(const i8sse& x, unsigned y)
 {
-    __m128i l = _mm_unpacklo_epi8(_mm_setzero_si128(), x.v);
-    __m128i h = _mm_unpackhi_epi8(_mm_setzero_si128(), x.v);
-
-    __m128i ll = _mm_srai_epi16(l, y);
-    __m128i hh = _mm_srai_epi16(h, y);
-
-    return _mm_packs_epi16(ll, hh);
+    __m128i x0  = x.v;
+    __m128i cnt = _mm_cvtsi32_si128((int)y);
+    x0          = _mm_srl_epi16(x0, cnt);
+    __m128i x2  = _mm_set1_epi32(-1);
+    x2          = _mm_srl_epi16(x2, cnt);
+    __m128i x3  = _mm_set1_epi8((char)0x80);
+    x3          = _mm_srl_epi16(x3, cnt);
+    x2          = _mm_srli_epi16(x2, 8);
+    x2          = _mm_unpacklo_epi8(x2, x2);
+    __m128i x1  = _mm_shufflelo_epi16(x2, 0x00);
+    x1          = _mm_shuffle_epi32(x1, 0x00);
+    x1          = _mm_and_si128(x1, x0);
+    x1          = _mm_xor_si128(x1, x3);
+    x1          = _mm_sub_epi8(x1, x3);
+    return x1;
 }
 
 KFR_INTRINSIC i64sse shr(const i64sse& x, unsigned y)
@@ -233,12 +251,14 @@ KFR_INTRINSIC i64sse shr(const i64sse& x, unsigned y)
     KFR_COMPONENTWISE_RET_I(u64sse, result[i] = x[i] >> y);
 }
 
-template <typename T, size_t N, typename = decltype(uibitcast(T())), KFR_ENABLE_IF(is_simd_size<T>(N))>
+template <typename T, size_t N>
+    requires(is_simd_size<T>(N))
 KFR_INTRINSIC vec<T, N> shl(const vec<T, N>& x, const vec<utype<T>, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = bitcast<T>(static_cast<uitype<T>>(uibitcast(x[i]) << y[i])));
 }
-template <typename T, size_t N, typename = decltype(uibitcast(T())), KFR_ENABLE_IF(is_simd_size<T>(N))>
+template <typename T, size_t N>
+    requires(is_simd_size<T>(N))
 KFR_INTRINSIC vec<T, N> shr(const vec<T, N>& x, const vec<utype<T>, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = bitcast<T>(static_cast<uitype<T>>(uibitcast(x[i]) >> y[i])));
@@ -390,7 +410,7 @@ KFR_INTRINSIC u32sse ge(const u32sse& x, const u32sse& y)
     return _mm_not_si128(_mm_cmplt_epi32(_mm_add_epi32(x.v, hb), _mm_add_epi32(y.v, hb)));
 }
 
-#if defined CMT_ARCH_SSE41 && defined KFR_NATIVE_INTRINSICS
+#if defined KFR_ARCH_SSE41 && defined KFR_NATIVE_INTRINSICS
 KFR_INTRINSIC u64sse eq(const u64sse& x, const u64sse& y) { return _mm_cmpeq_epi64(x.v, y.v); }
 KFR_INTRINSIC i64sse eq(const i64sse& x, const i64sse& y) { return _mm_cmpeq_epi64(x.v, y.v); }
 KFR_INTRINSIC u64sse ne(const u64sse& x, const u64sse& y) { return _mm_not_si128(_mm_cmpeq_epi64(x.v, y.v)); }
@@ -414,7 +434,7 @@ KFR_INTRINSIC i64sse ne(const i64sse& x, const i64sse& y)
 }
 #endif
 
-#if defined CMT_ARCH_SSE42
+#if defined KFR_ARCH_SSE42
 KFR_INTRINSIC i64sse gt(const i64sse& x, const i64sse& y) { return _mm_cmpgt_epi64(x.v, y.v); }
 KFR_INTRINSIC i64sse lt(const i64sse& x, const i64sse& y) { return _mm_cmpgt_epi64(y.v, x.v); }
 KFR_INTRINSIC i64sse ge(const i64sse& x, const i64sse& y) { return _mm_not_si128(_mm_cmpgt_epi64(y.v, x.v)); }
@@ -476,7 +496,7 @@ KFR_INTRINSIC i64sse le(const i64sse& x, const i64sse& y)
 }
 #endif
 
-#if defined CMT_ARCH_AVX
+#if defined KFR_ARCH_AVX
 
 KFR_INTRINSIC f32avx add(const f32avx& x, const f32avx& y) { return f32avx(_mm256_add_ps(x.v, y.v)); }
 KFR_INTRINSIC f64avx add(const f64avx& x, const f64avx& y) { return f64avx(_mm256_add_pd(x.v, y.v)); }
@@ -497,7 +517,7 @@ KFR_INTRINSIC __m256d _mm256_allones_pd()
     return _mm256_cmp_pd(_mm256_setzero_pd(), _mm256_setzero_pd(), _CMP_EQ_UQ);
 }
 
-#if defined CMT_ARCH_AVX2
+#if defined KFR_ARCH_AVX2
 KFR_INTRINSIC __m256i _mm256_allones_si256()
 {
     return _mm256_cmpeq_epi8(_mm256_setzero_si256(), _mm256_setzero_si256());
@@ -547,7 +567,7 @@ KFR_INTRINSIC f64avx bxor(const f64avx& x, const f64avx& y) { return _mm256_xor_
 
 KFR_INTRINSIC f32avx shl(const f32avx& x, unsigned y)
 {
-#if defined CMT_ARCH_AVX2
+#if defined KFR_ARCH_AVX2
     return _mm256_castsi256_ps(_mm256_slli_epi32(_mm256_castps_si256(x.v), y));
 #else
     return KFR_mm256_setr_m128(
@@ -557,7 +577,7 @@ KFR_INTRINSIC f32avx shl(const f32avx& x, unsigned y)
 }
 KFR_INTRINSIC f64avx shl(const f64avx& x, unsigned y)
 {
-#if defined CMT_ARCH_AVX2
+#if defined KFR_ARCH_AVX2
     return _mm256_castsi256_pd(_mm256_slli_epi64(_mm256_castpd_si256(x.v), y));
 #else
     return KFR_mm256_setr_m128d(
@@ -567,7 +587,7 @@ KFR_INTRINSIC f64avx shl(const f64avx& x, unsigned y)
 }
 KFR_INTRINSIC f32avx shr(const f32avx& x, unsigned y)
 {
-#if defined CMT_ARCH_AVX2
+#if defined KFR_ARCH_AVX2
     return _mm256_castsi256_ps(_mm256_srli_epi32(_mm256_castps_si256(x.v), y));
 #else
     return KFR_mm256_setr_m128(
@@ -577,7 +597,7 @@ KFR_INTRINSIC f32avx shr(const f32avx& x, unsigned y)
 }
 KFR_INTRINSIC f64avx shr(const f64avx& x, unsigned y)
 {
-#if defined CMT_ARCH_AVX2
+#if defined KFR_ARCH_AVX2
     return _mm256_castsi256_pd(_mm256_srli_epi64(_mm256_castpd_si256(x.v), y));
 #else
     return KFR_mm256_setr_m128d(
@@ -586,7 +606,7 @@ KFR_INTRINSIC f64avx shr(const f64avx& x, unsigned y)
 #endif
 }
 
-#if defined CMT_ARCH_AVX2
+#if defined KFR_ARCH_AVX2
 
 KFR_INTRINSIC u8avx add(const u8avx& x, const u8avx& y) { return _mm256_add_epi8(x.v, y.v); }
 KFR_INTRINSIC u8avx sub(const u8avx& x, const u8avx& y) { return _mm256_sub_epi8(x.v, y.v); }
@@ -687,39 +707,54 @@ KFR_INTRINSIC i64avx shr(const i64avx& x, unsigned y)
 
 KFR_INTRINSIC u8avx shl(const u8avx& x, unsigned y)
 {
-    __m256i l  = _mm256_unpacklo_epi8(_mm256_setzero_si256(), x.v);
-    __m256i h  = _mm256_unpackhi_epi8(_mm256_setzero_si256(), x.v);
-    __m256i ll = _mm256_slli_epi16(l, y);
-    __m256i hh = _mm256_slli_epi16(h, y);
-
-    return _mm256_packs_epi16(ll, hh);
+    __m256i v           = x.v;
+    __m128i cnt128      = _mm_cvtsi32_si128((int)y);
+    v                   = _mm256_sll_epi16(v, cnt128);
+    __m128i ones128     = _mm_set1_epi32(-1);
+    __m128i wordmask128 = _mm_sll_epi16(ones128, cnt128);
+    __m256i bytemask256 = _mm256_broadcastb_epi8(wordmask128);
+    v                   = _mm256_and_si256(v, bytemask256);
+    return v;
 }
 KFR_INTRINSIC i8avx shl(const i8avx& x, unsigned y)
 {
-    __m256i l  = _mm256_unpacklo_epi8(_mm256_setzero_si256(), x.v);
-    __m256i h  = _mm256_unpackhi_epi8(_mm256_setzero_si256(), x.v);
-    __m256i ll = _mm256_slli_epi16(l, y);
-    __m256i hh = _mm256_slli_epi16(h, y);
-
-    return _mm256_packs_epi16(ll, hh);
+    __m256i v           = x.v;
+    __m128i cnt128      = _mm_cvtsi32_si128((int)y);
+    v                   = _mm256_sll_epi16(v, cnt128);
+    __m128i ones128     = _mm_set1_epi32(-1);
+    __m128i wordmask128 = _mm_sll_epi16(ones128, cnt128);
+    __m256i bytemask256 = _mm256_broadcastb_epi8(wordmask128);
+    v                   = _mm256_and_si256(v, bytemask256);
+    return v;
 }
 KFR_INTRINSIC u8avx shr(const u8avx& x, unsigned y)
 {
-    __m256i l  = _mm256_unpacklo_epi8(_mm256_setzero_si256(), x.v);
-    __m256i h  = _mm256_unpackhi_epi8(_mm256_setzero_si256(), x.v);
-    __m256i ll = _mm256_srli_epi16(l, y);
-    __m256i hh = _mm256_srli_epi16(h, y);
-
-    return _mm256_packs_epi16(ll, hh);
+    __m256i v           = x.v;
+    __m128i cnt128      = _mm_cvtsi32_si128((int)y);
+    v                   = _mm256_srl_epi16(v, cnt128);
+    __m128i ones128     = _mm_set1_epi32(-1);
+    __m128i wordmask128 = _mm_srl_epi16(ones128, cnt128);
+    wordmask128         = _mm_srli_epi16(wordmask128, 8);
+    __m256i bytemask256 = _mm256_broadcastb_epi8(wordmask128);
+    v                   = _mm256_and_si256(v, bytemask256);
+    return v;
 }
 KFR_INTRINSIC i8avx shr(const i8avx& x, unsigned y)
 {
-    __m256i l  = _mm256_unpacklo_epi8(_mm256_setzero_si256(), x.v);
-    __m256i h  = _mm256_unpackhi_epi8(_mm256_setzero_si256(), x.v);
-    __m256i ll = _mm256_srai_epi16(l, y);
-    __m256i hh = _mm256_srai_epi16(h, y);
-
-    return _mm256_packs_epi16(ll, hh);
+    __m128i cnt128           = _mm_cvtsi32_si128((int)y);
+    __m256i v                = x.v;
+    v                        = _mm256_srl_epi16(v, cnt128);
+    __m128i ones128          = _mm_set1_epi32(-1);
+    __m128i wordmask128      = _mm_srl_epi16(ones128, cnt128);
+    __m128i const80          = _mm_cvtsi32_si128(0x80);
+    __m256i signmask256      = _mm256_broadcastb_epi8(const80);
+    __m256i shifted_signmask = _mm256_srl_epi16(signmask256, cnt128);
+    wordmask128              = _mm_srli_epi16(wordmask128, 8);
+    __m256i bytemask256      = _mm256_broadcastb_epi8(wordmask128);
+    v                        = _mm256_and_si256(v, bytemask256);
+    v                        = _mm256_xor_si256(v, shifted_signmask);
+    v                        = _mm256_sub_epi8(v, shifted_signmask);
+    return v;
 }
 
 KFR_INTRINSIC u32sse shl(const u32sse& x, const u32sse& y) { return _mm_sllv_epi32(x.v, y.v); }
@@ -949,7 +984,7 @@ KFR_INTRINSIC u64avx ge(const u64avx& x, const u64avx& y)
     return _mm256_not_si256(_mm256_cmpgt_epi64(_mm256_add_epi64(y.v, hb), _mm256_add_epi64(x.v, hb)));
 }
 
-#if defined CMT_ARCH_AVX512
+#if defined KFR_ARCH_AVX512
 KFR_INTRINSIC f32avx512 add(const f32avx512& x, const f32avx512& y) { return _mm512_add_ps(x.v, y.v); }
 KFR_INTRINSIC f64avx512 add(const f64avx512& x, const f64avx512& y) { return _mm512_add_pd(x.v, y.v); }
 KFR_INTRINSIC f32avx512 sub(const f32avx512& x, const f32avx512& y) { return _mm512_sub_ps(x.v, y.v); }
@@ -1357,39 +1392,51 @@ KFR_INTRINSIC i64avx512 shr(const i64avx512& x, unsigned y)
 
 KFR_INTRINSIC u8avx512 shl(const u8avx512& x, unsigned y)
 {
-    __m512i l  = _mm512_unpacklo_epi8(_mm512_setzero_si512(), x.v);
-    __m512i h  = _mm512_unpackhi_epi8(_mm512_setzero_si512(), x.v);
-    __m512i ll = _mm512_slli_epi16(l, y);
-    __m512i hh = _mm512_slli_epi16(h, y);
-
-    return _mm512_packs_epi16(ll, hh);
+    __m512i v            = x.v;
+    __m128i cnt128       = _mm_cvtsi32_si128((int)y);
+    v                    = _mm512_sll_epi16(v, cnt128);
+    __m128i ones128      = _mm_set1_epi32(-1);
+    __m128i word_mask128 = _mm_sll_epi16(ones128, cnt128);
+    __m512i byte_mask512 = _mm512_broadcastb_epi8(word_mask128);
+    return _mm512_and_si512(v, byte_mask512);
 }
 KFR_INTRINSIC i8avx512 shl(const i8avx512& x, unsigned y)
 {
-    __m512i l  = _mm512_unpacklo_epi8(_mm512_setzero_si512(), x.v);
-    __m512i h  = _mm512_unpackhi_epi8(_mm512_setzero_si512(), x.v);
-    __m512i ll = _mm512_slli_epi16(l, y);
-    __m512i hh = _mm512_slli_epi16(h, y);
-
-    return _mm512_packs_epi16(ll, hh);
+    __m512i v            = x.v;
+    __m128i cnt128       = _mm_cvtsi32_si128((int)y);
+    v                    = _mm512_sll_epi16(v, cnt128);
+    __m128i ones128      = _mm_set1_epi32(-1);
+    __m128i word_mask128 = _mm_sll_epi16(ones128, cnt128);
+    __m512i byte_mask512 = _mm512_broadcastb_epi8(word_mask128);
+    return _mm512_and_si512(v, byte_mask512);
 }
 KFR_INTRINSIC u8avx512 shr(const u8avx512& x, unsigned y)
 {
-    __m512i l  = _mm512_unpacklo_epi8(_mm512_setzero_si512(), x.v);
-    __m512i h  = _mm512_unpackhi_epi8(_mm512_setzero_si512(), x.v);
-    __m512i ll = _mm512_srli_epi16(l, y);
-    __m512i hh = _mm512_srli_epi16(h, y);
-
-    return _mm512_packs_epi16(ll, hh);
+    __m512i v            = x.v;
+    __m128i cnt128       = _mm_cvtsi32_si128((int)y);
+    v                    = _mm512_srl_epi16(v, cnt128);
+    __m128i ones128      = _mm_set1_epi32(-1);
+    __m128i word_mask128 = _mm_srl_epi16(ones128, cnt128);
+    word_mask128         = _mm_srli_epi16(word_mask128, 8);
+    __m512i byte_mask512 = _mm512_broadcastb_epi8(word_mask128);
+    v                    = _mm512_and_si512(v, byte_mask512);
+    return v;
 }
 KFR_INTRINSIC i8avx512 shr(const i8avx512& x, unsigned y)
 {
-    __m512i l  = _mm512_unpacklo_epi8(_mm512_setzero_si512(), x.v);
-    __m512i h  = _mm512_unpackhi_epi8(_mm512_setzero_si512(), x.v);
-    __m512i ll = _mm512_srai_epi16(l, y);
-    __m512i hh = _mm512_srai_epi16(h, y);
-
-    return _mm512_packs_epi16(ll, hh);
+    __m512i z0       = x.v;
+    __m128i cnt128   = _mm_cvtsi32_si128((int)y);
+    z0               = _mm512_srl_epi16(z0, cnt128);
+    __m128i const80  = _mm_cvtsi32_si128(0x80);
+    __m512i z2       = _mm512_broadcastb_epi8(const80);
+    z2               = _mm512_srl_epi16(z2, cnt128);
+    __m128i ones128  = _mm_set1_epi32(-1);
+    __m128i wmask128 = _mm_srl_epi16(ones128, cnt128);
+    wmask128         = _mm_srli_epi16(wmask128, 8);
+    __m512i z1       = _mm512_broadcastb_epi8(wmask128);
+    z1               = _mm512_ternarylogic_epi64(z1, z2, z0, 108);
+    z0               = _mm512_sub_epi8(z1, z2);
+    return z0;
 }
 
 KFR_INTRINSIC u32avx512 shl(const u32avx512& x, const u32avx512& y) { return _mm512_sllv_epi32(x.v, y.v); }
@@ -1426,25 +1473,27 @@ KFR_INTRINSIC f64avx512 shr(const f64avx512& x, const u64avx512& y)
 #endif
 
 #define KFR_HANDLE_ALL_SIZES_SHIFT_2(fn)                                                                     \
-    template <typename T, size_t N,                                                                          \
-              KFR_ENABLE_IF(N < vector_width<T> && !is_simd_size<T>(N) && is_simd_type<T>)>                  \
+    template <simd_compat T, size_t N>                                                                       \
+        requires(N < vector_width<T> && !is_simd_size<T>(N))                                                 \
     KFR_INTRINSIC vec<T, N> fn(const vec<T, N>& a, const unsigned b)                                         \
     {                                                                                                        \
         return slice<0, N>(fn(expand_simd(a), b));                                                           \
     }                                                                                                        \
-    template <typename T, size_t N, KFR_ENABLE_IF(N > vector_width<T> && is_simd_type<T>), typename = void>  \
+    template <simd_compat T, size_t N>                                                                       \
+        requires(N > vector_width<T>)                                                                        \
     KFR_INTRINSIC vec<T, N> fn(const vec<T, N>& a, const unsigned b)                                         \
     {                                                                                                        \
         return concat(fn(low(a), b), fn(high(a), b));                                                        \
     }
 #define KFR_HANDLE_ALL_SIZES_SHIFT_VAR_2(fn)                                                                 \
-    template <typename T, size_t N,                                                                          \
-              KFR_ENABLE_IF(N < vector_width<T> && !is_simd_size<T>(N) && is_simd_type<T>)>                  \
+    template <simd_compat T, size_t N>                                                                       \
+        requires(N < vector_width<T> && !is_simd_size<T>(N))                                                 \
     KFR_INTRINSIC vec<T, N> fn(const vec<T, N>& a, const vec<utype<T>, N>& b)                                \
     {                                                                                                        \
         return slice<0, N>(fn(expand_simd(a), expand_simd(b)));                                              \
     }                                                                                                        \
-    template <typename T, size_t N, KFR_ENABLE_IF(N > vector_width<T> && is_simd_type<T>), typename = void>  \
+    template <simd_compat T, size_t N>                                                                       \
+        requires(N > vector_width<T>)                                                                        \
     KFR_INTRINSIC vec<T, N> fn(const vec<T, N>& a, const vec<utype<T>, N>& b)                                \
     {                                                                                                        \
         return concat(fn(low(a), low(b)), fn(high(a), high(b)));                                             \
@@ -1474,107 +1523,107 @@ KFR_HANDLE_ALL_SIZES_SHIFT_VAR_2(shr)
 
 #else
 
-template <typename T, size_t N, typename = decltype(uibitcast(T())), KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> shl(const vec<T, N>& x, const vec<utype<T>, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = bitcast<T>(static_cast<uitype<T>>(uibitcast(x[i]) << y[i])));
 }
-template <typename T, size_t N, typename = decltype(uibitcast(T())), KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> shl(const vec<T, N>& x, unsigned y)
 {
     KFR_COMPONENTWISE_RET(result[i] = bitcast<T>(static_cast<uitype<T>>(uibitcast(x[i]) << y)));
 }
-template <typename T, size_t N, typename = decltype(uibitcast(T())), KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> shr(const vec<T, N>& x, const vec<utype<T>, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = bitcast<T>(static_cast<uitype<T>>(uibitcast(x[i]) >> y[i])));
 }
-template <typename T, size_t N, typename = decltype(uibitcast(T())), KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> shr(const vec<T, N>& x, unsigned y)
 {
     KFR_COMPONENTWISE_RET(result[i] = bitcast<T>(static_cast<uitype<T>>(uibitcast(x[i]) >> y)));
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> eq(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = maskbits<T>(x[i] == y[i]));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> ne(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = maskbits<T>(x[i] != y[i]));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> ge(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = maskbits<T>(x[i] >= y[i]));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> le(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = maskbits<T>(x[i] <= y[i]));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> gt(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = maskbits<T>(x[i] > y[i]));
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> lt(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = maskbits<T>(x[i] < y[i]));
 }
 
-template <typename T, size_t N, typename = decltype(ubitcast(T())), KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> bor(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = bitcast<T>(static_cast<utype<T>>((ubitcast(x[i]) | ubitcast(y[i])))));
 }
-template <typename T, size_t N, typename = decltype(ubitcast(T())), KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> bxor(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = bitcast<T>(static_cast<utype<T>>(ubitcast(x[i]) ^ ubitcast(y[i]))));
 }
-template <typename T, size_t N, typename = decltype(ubitcast(T())), KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> band(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = bitcast<T>(static_cast<utype<T>>(ubitcast(x[i]) & ubitcast(y[i]))));
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> add(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = x[i] + y[i]);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> sub(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = x[i] - y[i]);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> mul(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = x[i] * y[i]);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> div(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = x[i] / y[i]);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>
+template <simd_compat T, size_t N>
 KFR_INTRINSIC vec<T, N> mod(const vec<T, N>& x, const vec<T, N>& y)
 {
     KFR_COMPONENTWISE_RET(result[i] = x[i] % y[i]);
 }
 
 #define KFR_HANDLE_VEC_SCA(fn)                                                                               \
-    template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>                                          \
+    template <simd_compat T, size_t N>                                                                       \
     KFR_INTRINSIC vec<T, N> fn(const vec<T, N>& x, const T& y)                                               \
     {                                                                                                        \
         return fn(x, vec<T, N>(y));                                                                          \
     }                                                                                                        \
-    template <typename T, size_t N, KFR_ENABLE_IF(is_simd_type<T>)>                                          \
+    template <simd_compat T, size_t N>                                                                       \
     KFR_INTRINSIC vec<T, N> fn(const T& x, const vec<T, N>& y)                                               \
     {                                                                                                        \
         return fn(vec<T, N>(x), y);                                                                          \
@@ -1603,12 +1652,12 @@ KFR_INTRINSIC vec<T, N> bnot(const vec<T, N>& x)
     return bxor(special_constants<T>::allones(), x);
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(!is_f_class<T>)>
+template <not_f_class T, size_t N>
 KFR_INTRINSIC vec<T, N> neg(const vec<T, N>& x)
 {
     return sub(T(0), x);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_f_class<T>)>
+template <f_class T, size_t N>
 KFR_INTRINSIC vec<T, N> neg(const vec<T, N>& x)
 {
     return bxor(special_constants<T>::highbitmask(), x);
@@ -1635,8 +1684,8 @@ KFR_INTRINSIC vec<bit<T>, N> bnot(const vec<bit<T>, N>& x)
     return bnot(vec<T, N>(x.v)).v;
 }
 
-} // namespace intrinsics
-} // namespace CMT_ARCH_NAME
+} // namespace intr
+} // namespace KFR_ARCH_NAME
 } // namespace kfr
 
-CMT_PRAGMA_MSVC(warning(pop))
+KFR_PRAGMA_MSVC(warning(pop))

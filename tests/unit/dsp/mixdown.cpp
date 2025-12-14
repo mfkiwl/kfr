@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -11,16 +11,16 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-TEST(mixdown)
+TEST_CASE("mixdown")
 {
     CHECK_EXPRESSION(mixdown(counter(), counter() * 2 + 100), infinite_size,
                      [](size_t i) { return i + i * 2 + 100; });
 }
 
-TEST(mixdown_stereo)
+TEST_CASE("mixdown_stereo")
 {
     const univector<double, 21> left  = counter();
     const univector<double, 21> right = counter() * 2 + 100;
@@ -32,5 +32,5 @@ TEST(mixdown_stereo)
     CHECK_EXPRESSION(side, 21, [](size_t i) { return i - (i * 2.0 + 100.0); });
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

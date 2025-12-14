@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -35,11 +35,11 @@ template <typename T, std::size_t Capacity = 16>
 struct small_buffer
 {
 public:
-    small_buffer() CMT_NOEXCEPT : m_size(0), m_data(m_preallocated) {}
+    small_buffer() noexcept : m_size(0), m_data(m_preallocated) {}
 
     small_buffer(std::size_t size) : small_buffer() { resize(size); }
 
-    friend void swap(small_buffer<T, Capacity>& first, small_buffer<T, Capacity>& second) CMT_NOEXCEPT
+    friend void swap(small_buffer<T, Capacity>& first, small_buffer<T, Capacity>& second) noexcept
     {
         using std::swap;
 
@@ -77,7 +77,10 @@ public:
         {
             m_newdata = aligned_allocate<T>(newsize);
         }
-        std::copy_n(std::make_move_iterator(m_data), std::min(newsize, m_size), m_newdata);
+        if (m_newdata != m_data)
+        {
+            std::copy_n(std::make_move_iterator(m_data), std::min(newsize, m_size), m_newdata);
+        }
         if (m_data != m_preallocated)
             aligned_deallocate(m_data);
         m_data = m_newdata;

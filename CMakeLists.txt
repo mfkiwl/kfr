@@ -1,4 +1,4 @@
-# Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+# Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
 # This file is part of KFR
 #
 # KFR is free software: you can redistribute it and/or modify
@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with KFR.
 
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.16)
 
 if (KFR_WITH_CLANG)
     set(CLANG_VERSION 17.0.6)
@@ -94,18 +94,14 @@ project(
     kfr
     VERSION ${KFR_VERSION}
     LANGUAGES CXX)
-    
+
 if (DEBUG_CMAKE)
     get_cmake_property(VARS VARIABLES)
-    list (SORT VARS)
+    list(SORT VARS)
     foreach (VAR ${VARS})
         message(STATUS "${VAR}=${${VAR}}")
-    endforeach()
+    endforeach ()
 endif ()
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS ON)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${PROJECT_BINARY_DIR}/bin)
@@ -132,27 +128,51 @@ if (CPU_ARCH)
 endif ()
 
 if (EMSCRIPTEN)
-    set(KFR_ARCH "sse41" CACHE STRING "")
-    set(KFR_ENABLE_MULTIARCH OFF CACHE BOOL "")
+    set(KFR_ARCH
+        "sse41"
+        CACHE STRING "")
+    set(KFR_ENABLE_MULTIARCH
+        OFF
+        CACHE BOOL "")
 endif ()
 
 set(X86 FALSE)
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
-    set(X86 TRUE)
-endif ()
-if (CMAKE_OSX_ARCHITECTURES MATCHES "x86_64")
-    set(X86 TRUE)
-endif ()
-if (CMAKE_OSX_ARCHITECTURES MATCHES "^[Aa][Rr][Mm]64$")
-    set(X86 FALSE)
+if (APPLE)
+    message(STATUS "CMAKE_OSX_ARCHITECTURES = ${CMAKE_OSX_ARCHITECTURES}")
+    if (CMAKE_OSX_ARCHITECTURES MATCHES "[Xx]86_64")
+        set(X86 TRUE)
+    endif ()
+    if (CMAKE_OSX_ARCHITECTURES MATCHES "[Aa][Rr][Mm]64")
+        if (X86)
+            set(OSX_UNIVERSAL TRUE)
+        else ()
+            set(OSX_UNIVERSAL FALSE)
+        endif ()
+    endif ()
+
+    if (OSX_UNIVERSAL)
+        message(STATUS "OSX_UNIVERSAL: TRUE")
+    else ()
+        message(STATUS "OSX_UNIVERSAL: FALSE")
+    endif ()
+else ()
+    message(STATUS "CMAKE_SYSTEM_PROCESSOR = ${CMAKE_SYSTEM_PROCESSOR}")
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+        set(X86 TRUE)
+    endif ()
+    if (CMAKE_CXX_COMPILER_TARGET MATCHES
+        "^([Aa][Rr][Mm]|[Aa][Aa][Rr][Cc][Hh]|[Rr][Vv][Vv])")
+        set(X86 FALSE)
+    endif ()
+    if (CMAKE_ANDROID_ARCH_ABI MATCHES "x86")
+        set(X86 TRUE)
+    endif ()
 endif ()
 
-if (CMAKE_CXX_COMPILER_TARGET MATCHES "^arm")
-    set(X86 FALSE)
-endif ()
-
-if (CMAKE_ANDROID_ARCH_ABI MATCHES "x86")
-    set(X86 TRUE)
+if (X86)
+    message(STATUS "X86: TRUE")
+else ()
+    message(STATUS "X86: FALSE")
 endif ()
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
@@ -160,6 +180,8 @@ if (CMAKE_SIZEOF_VOID_P EQUAL 8)
 else ()
     set(BITNESS64 FALSE)
 endif ()
+
+message(STATUS "BITNESS64: ${BITNESS64}")
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR CMAKE_CXX_COMPILER_ID STREQUAL
                                               "AppleClang")
@@ -176,8 +198,16 @@ include(cmake/add_kfr_library.cmake)
 include(sources.cmake)
 include(CMakeDependentOption)
 
-option(KFR_ENABLE_MULTIARCH
-       "Multiple architectures will be built with runtime dispatch" ON)
+if (NOT X86)
+    set(KFR_ENABLE_MULTIARCH
+        OFF
+        CACHE INTERNAL "" FORCE)
+endif ()
+
+if (X86)
+    option(KFR_ENABLE_MULTIARCH
+           "Multiple architectures will be built with runtime dispatch" ON)
+endif ()
 
 option(ENABLE_TESTS "Enable KFR tests" OFF)
 cmake_dependent_option(ENABLE_EXAMPLES "Enable KFR examples" ON "ENABLE_TESTS"
@@ -187,6 +217,10 @@ if (CLANG)
 else ()
     option(KFR_ENABLE_DFT "Enable DFT and related algorithms." OFF)
 endif ()
+option(KFR_ENABLE_AUDIO "Enable Audio classes" ON)
+option(KFR_ENABLE_IO "Enable IO classes" ON)
+option(KFR_ENABLE_DSP "Enable DSP module" ON)
+
 option(KFR_ENABLE_ASMTEST "Enable writing disassembly" OFF)
 option(KFR_REGENERATE_TESTS "Regenerate auto tests" OFF)
 option(KFR_DISABLE_CLANG_EXTENSIONS "Disable Clang vector extensions" OFF)
@@ -195,12 +229,24 @@ option(KFR_SKIP_TESTS "Build tests but don't run tests" OFF)
 option(KFR_ENABLE_CAPI_BUILD "Enable KFR C API building" OFF)
 option(KFR_INSTALL_HEADERS "Include headers in installation" ON)
 option(KFR_INSTALL_LIBRARIES "Include libraries in installation" ON)
+option(KFR_MANAGED_ALLOCATION
+       "Use KFR managed memory (copy-free aligned reallocation, ref counting)"
+       OFF)
+option(KFR_USE_BOOST_MATH
+       "Use Boost.Math (standalone) to support Elliptic filters" ON)
+option(
+    KFR_USE_BOOST
+    "Use Boost to support Elliptic filters. Enable this only if you're already using Boost"
+    OFF)
+option(KFR_USE_STD_FILESYSTEM "Use std::filesystem for path arguments" OFF)
 mark_as_advanced(KFR_ENABLE_ASMTEST)
 mark_as_advanced(KFR_REGENERATE_TESTS)
 mark_as_advanced(KFR_DISABLE_CLANG_EXTENSIONS)
 
 if (CMAKE_ANDROID_ARCH_ABI)
-    set(KFR_ENABLE_MULTIARCH OFF CACHE INTERNAL "" FORCE)
+    set(KFR_ENABLE_MULTIARCH
+        OFF
+        CACHE INTERNAL "" FORCE)
 endif ()
 
 if (KFR_ENABLE_CAPI_BUILD AND NOT KFR_ENABLE_DFT)
@@ -231,11 +277,15 @@ if (X86)
         avx2
         avx512)
 else ()
-    set(ALLOWED_ARCHS generic neon neon64)
+    set(ALLOWED_ARCHS generic neon neon64 rvv)
 endif ()
 
 if (NOT X86)
     if (KFR_ARCH IN_LIST DETECT_NAMES)
+        message(
+            STATUS
+                "Cpu detection is disabled on non-x86, setting neon (KFR_ARCH=${KFR_ARCH})"
+        )
         if (BITNESS64)
             set(KFR_ARCH neon64)
         else ()
@@ -244,6 +294,8 @@ if (NOT X86)
     endif ()
 endif ()
 
+message(STATUS "KFR_ARCH: ${KFR_ARCH}")
+
 if (KFR_ARCH IN_LIST DETECT_NAMES AND NOT CMAKE_CROSSCOMPILING)
     message(STATUS "Detecting ${KFR_ARCH} architecture")
     try_run(
@@ -251,10 +303,8 @@ if (KFR_ARCH IN_LIST DETECT_NAMES AND NOT CMAKE_CROSSCOMPILING)
         ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detect_cpu.cpp
         CMAKE_FLAGS
             "-DINCLUDE_DIRECTORIES=${CMAKE_CURRENT_SOURCE_DIR}/include"
-            -DCMAKE_CXX_STANDARD=17
-            -DCMAKE_CXX_STANDARD_REQUIRED=ON
+            -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_STANDARD_REQUIRED=ON
             "-DCOMPILE_DEFINITIONS=-DCPU_${KFR_ARCH}=1"
-            -DCMAKE_CXX_EXTENSIONS=ON
         COMPILE_OUTPUT_VARIABLE COMPILE_OUT
         RUN_OUTPUT_VARIABLE RUN_OUT)
     if (COMPILE_RESULT AND RUN_RESULT EQUAL 0)
@@ -277,9 +327,10 @@ else ()
             "Default CPU architecture for KFR is ${KFR_ARCH} (set by KFR_ARCH)")
 endif ()
 
-
 if (X86 AND KFR_ARCH STREQUAL "target")
-    set(KFR_ARCH sse2 CACHE INTERNAL "Default CPU" FORCE)
+    set(KFR_ARCH
+        sse2
+        CACHE INTERNAL "Default CPU" FORCE)
 endif ()
 
 if (NOT KFR_ARCH IN_LIST ALLOWED_ARCHS)
@@ -339,6 +390,9 @@ endif ()
 # KFR library
 add_library(kfr INTERFACE)
 # target_sources(kfr INTERFACE ${KFR_SRC})
+
+target_compile_features(kfr INTERFACE cxx_std_20)
+
 target_include_directories(
     kfr INTERFACE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
                   $<INSTALL_INTERFACE:include>)
@@ -357,10 +411,12 @@ else ()
     target_link_libraries(kfr INTERFACE ${STD_LIB} ${PTHREAD_LIB} m)
 endif ()
 if (KFR_DISABLE_CLANG_EXTENSIONS)
-    target_compile_definitions(kfr INTERFACE -DCMT_DISABLE_CLANG_EXT)
+    target_compile_definitions(
+        kfr INTERFACE $<BUILD_INTERFACE:KFR_DISABLE_CLANG_EXT>)
 endif ()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     add_compile_options(-Wno-ignored-qualifiers -Wno-psabi)
+    target_compile_options(kfr INTERFACE -flax-vector-conversions)
 endif ()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     add_compile_options(-Wno-c++1z-extensions -Wno-psabi
@@ -371,17 +427,55 @@ if (MSVC)
     target_compile_options(kfr INTERFACE $<$<CXX_COMPILER_ID:MSVC>:/Zc:lambda>)
 endif ()
 
-if (NOT KFR_ENABLE_DFT)
-    target_compile_definitions(kfr INTERFACE -DKFR_NO_DFT)
+if (KFR_ENABLE_DFT)
+    target_compile_definitions(kfr INTERFACE $<BUILD_INTERFACE:KFR_HAVE_DFT>)
+else ()
+    target_compile_definitions(kfr INTERFACE $<BUILD_INTERFACE:KFR_NO_DFT>)
 endif ()
+
+if (KFR_ENABLE_DSP)
+    target_compile_definitions(kfr INTERFACE $<BUILD_INTERFACE:KFR_HAVE_DSP>)
+endif ()
+
+if (KFR_ENABLE_IO)
+    target_compile_definitions(kfr INTERFACE $<BUILD_INTERFACE:KFR_HAVE_IO>)
+endif ()
+
+if (KFR_ENABLE_AUDIO)
+    target_compile_definitions(kfr INTERFACE $<BUILD_INTERFACE:KFR_HAVE_AUDIO>)
+endif ()
+
 if (KFR_EXTENDED_TESTS)
-    target_compile_definitions(kfr INTERFACE -DKFR_EXTENDED_TESTS)
+    target_compile_definitions(kfr
+                               INTERFACE $<BUILD_INTERFACE:KFR_EXTENDED_TESTS>)
 endif ()
 
-set(KFR_DEBUG_INSTALL_SUFFIX "/debug" CACHE STRING "")
+if (KFR_MANAGED_ALLOCATION)
+    target_compile_definitions(
+        kfr INTERFACE $<BUILD_INTERFACE:KFR_MANAGED_ALLOCATION=1>)
+endif ()
 
-add_subdirectory(src/dsp)
-add_subdirectory(src/io)
+set(KFR_DEBUG_INSTALL_SUFFIX
+    "/debug"
+    CACHE STRING "")
+
+if (KFR_ENABLE_AUDIO AND NOT KFR_ENABLE_IO)
+    message(FATAL_ERROR "KFR_ENABLE_AUDIO requires KFR_ENABLE_IO to be enabled")
+endif ()
+if (KFR_ENABLE_AUDIO AND NOT KFR_ENABLE_DSP)
+    message(
+        FATAL_ERROR "KFR_ENABLE_AUDIO requires KFR_ENABLE_DSP to be enabled")
+endif ()
+
+if (KFR_ENABLE_DSP)
+    add_subdirectory(src/dsp)
+endif ()
+if (KFR_ENABLE_IO)
+    add_subdirectory(src/io)
+endif ()
+if (KFR_ENABLE_AUDIO)
+    add_subdirectory(src/audio)
+endif ()
 if (KFR_ENABLE_DFT)
     add_subdirectory(src/dft)
 endif ()
@@ -413,9 +507,21 @@ append_defines_from(kfr)
 if (KFR_ENABLE_DFT)
     append_defines_from(kfr_dft)
 endif ()
-append_defines_from(kfr_io)
 
+if (KFR_ENABLE_DSP)
+    append_defines_from(kfr_dsp)
+endif ()
+if (KFR_ENABLE_IO)
+    append_defines_from(kfr_io)
+endif ()
+if (KFR_ENABLE_AUDIO)
+    append_defines_from(kfr_audio)
+endif ()
+
+string(REPLACE "$<BUILD_INTERFACE:" "" kfr_defines "${kfr_defines}")
+string(REPLACE ">" "" kfr_defines "${kfr_defines}")
 string(REPLACE "=" " " kfr_defines "${kfr_defines}")
+list(FILTER kfr_defines EXCLUDE REGEX "^$")
 string(REPLACE ";" "\n#define " kfr_defines "${kfr_defines}")
 if (kfr_defines)
     set(kfr_defines "#define ${kfr_defines}\n")
@@ -448,28 +554,29 @@ endif ()
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+write_basic_package_version_file(
+    KFRConfigVersion.cmake
+    VERSION ${KFR_VERSION}
+    COMPATIBILITY SameMinorVersion)
+
 set(KFR_INSTALL_CMAKEDIR
     "${CMAKE_INSTALL_LIBDIR}/cmake/kfr"
     CACHE STRING "Path to KFR CMake files")
 
-configure_package_config_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.cmake.in
-    "${CMAKE_CURRENT_BINARY_DIR}/KFRConfig.cmake"
-    INSTALL_DESTINATION "lib/cmake/kfr"
-    NO_SET_AND_CHECK_MACRO NO_CHECK_REQUIRED_COMPONENTS_MACRO)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/KFRConfigVersion.cmake
+        DESTINATION ${KFR_INSTALL_CMAKEDIR})
 
-install(TARGETS kfr EXPORT kfr_export)
+configure_package_config_file(
+    ${CMAKE_CURRENT_LIST_DIR}/cmake/config.cmake.in
+    ${CMAKE_CURRENT_BINARY_DIR}/KFRConfig.cmake
+    INSTALL_DESTINATION "lib/cmake/kfr")
+
+install(TARGETS kfr EXPORT KFRTargets)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/KFRConfig.cmake
+        DESTINATION "${KFR_INSTALL_CMAKEDIR}")
 
 install(
-    EXPORT kfr_export
+    EXPORT KFRTargets
     DESTINATION "${KFR_INSTALL_CMAKEDIR}"
-    CONFIGURATIONS Debug Release
-    FILE KFRConfig.cmake)
-
-write_basic_package_version_file(KFRConfigVersion.cmake
-    VERSION ${KFR_VERSION} 
-    COMPATIBILITY SameMinorVersion)
-
-install(FILES "${CMAKE_CURRENT_BINARY_DIR}/KFRConfigVersion.cmake"
-    DESTINATION
-    "${KFR_INSTALL_CMAKEDIR}" )
+    CONFIGURATIONS Debug Release)

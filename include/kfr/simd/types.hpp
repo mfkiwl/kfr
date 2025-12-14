@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -36,38 +36,31 @@
 #include <limits>
 #include <random>
 
-CMT_PRAGMA_GNU(GCC diagnostic push)
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wshadow")
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wignored-qualifiers")
+KFR_PRAGMA_GNU(GCC diagnostic push)
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wshadow")
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wignored-qualifiers")
 
 #ifdef KFR_TESTING
-#include "../cometa/function.hpp"
-#include "../testo/testo.hpp"
+#include "../meta/function.hpp"
+#include "../test/test.hpp"
 #endif
 
-#include "../cometa.hpp"
-#include "../cometa/numeric.hpp"
+#include "../meta.hpp"
+#include "../meta/numeric.hpp"
 
 namespace kfr
 {
 
-// Include all from CoMeta library
-using namespace cometa;
-
-using cometa::identity;
-
-using cometa::fbase;
-using cometa::fmax;
-
 template <typename... T>
 using decay_common = std::decay_t<std::common_type_t<T...>>;
 
-template <typename CT, template <typename T> typename Tpl, typename = void>
+template <typename CT, template <typename T> typename Tpl>
 struct construct_common_type
 {
 };
 template <typename CT, template <typename T> typename Tpl>
-struct construct_common_type<CT, Tpl, std::void_t<typename CT::type>>
+    requires requires { typename CT::type; }
+struct construct_common_type<CT, Tpl>
 {
     using type = Tpl<typename CT::type>;
 };
@@ -76,14 +69,14 @@ constexpr ctypes_t<i8, i16, i32, i64> signed_types{};
 constexpr ctypes_t<u8, u16, u32, u64> unsigned_types{};
 constexpr ctypes_t<i8, i16, i32, i64, u8, u16, u32, u64> integer_types{};
 constexpr ctypes_t<f32
-#ifdef CMT_NATIVE_F64
+#ifdef KFR_NATIVE_F64
                    ,
                    f64
 #endif
                    >
     float_types{};
 constexpr ctypes_t<i8, i16, i32, i64, u8, u16, u32, u64, f32
-#ifdef CMT_NATIVE_F64
+#ifdef KFR_NATIVE_F64
                    ,
                    f64
 #endif
@@ -92,9 +85,9 @@ constexpr ctypes_t<i8, i16, i32, i64, u8, u16, u32, u64, f32
 
 constexpr csizes_t<1, 2, 3, 4, 8, 16, 32, 64> test_vector_sizes{};
 
-#ifdef CMT_ARCH_AVX512
+#ifdef KFR_ARCH_AVX512
 constexpr size_t max_test_size = 128;
-#elif defined CMT_ARCH_AVX
+#elif defined KFR_ARCH_AVX
 constexpr size_t max_test_size = 64;
 #else
 constexpr size_t max_test_size = 32;
@@ -144,7 +137,7 @@ constexpr integer_vector_types_t<vec_tpl> integer_vector_types{};
 
 template <template <typename, size_t> class vec_tpl>
 using float_vector_types_t = concat_lists<vector_types_for_size_t<vec_tpl, f32>
-#ifdef CMT_NATIVE_F64
+#ifdef KFR_NATIVE_F64
                                           ,
                                           vector_types_for_size_t<vec_tpl, f64>
 #endif
@@ -165,20 +158,22 @@ struct i24
 {
     u8 raw[3];
 
-    constexpr i24(i32 x) CMT_NOEXCEPT : raw{}
+    i24() noexcept {}
+
+    i24(i32 x) noexcept
     {
         raw[0] = x & 0xFF;
         raw[1] = (x >> 8) & 0xFF;
         raw[2] = (x >> 16) & 0xFF;
     }
 
-    constexpr i32 as_int() const CMT_NOEXCEPT
+    i32 as_int() const noexcept
     {
         return static_cast<i32>(raw[0]) | static_cast<i32>(raw[1] << 8) |
                (static_cast<i32>(raw[2] << 24) >> 8);
     }
 
-    operator int() const CMT_NOEXCEPT { return as_int(); }
+    operator int() const noexcept { return as_int(); }
 };
 
 struct f16
@@ -213,27 +208,27 @@ template <typename T>
 struct bit
 {
     T value;
-    bit() CMT_NOEXCEPT = default;
+    bit() noexcept = default;
 
-    constexpr bit(bool value) CMT_NOEXCEPT : value(maskbits<T>(value)) {}
+    constexpr bit(bool value) noexcept : value(maskbits<T>(value)) {}
 
     template <typename U>
-    constexpr bit(const bit<U>& value) CMT_NOEXCEPT : value(value.operator bool())
+    constexpr bit(const bit<U>& value) noexcept : value(value.operator bool())
     {
     }
 
-    constexpr operator bool() const CMT_NOEXCEPT { return bitcast_anything<itype<T>>(value) < 0; }
+    constexpr operator bool() const noexcept { return bitcast_anything<itype<T>>(value) < 0; }
 
-    constexpr bit(T value) CMT_NOEXCEPT       = delete;
-    constexpr operator T() const CMT_NOEXCEPT = delete;
+    constexpr bit(T value) noexcept       = delete;
+    constexpr operator T() const noexcept = delete;
 
-    constexpr bool operator==(const bit& other) const CMT_NOEXCEPT
+    constexpr bool operator==(const bit& other) const noexcept
     {
         return operator bool() == other.operator bool();
     }
-    constexpr bool operator!=(const bit& other) const CMT_NOEXCEPT { return !operator==(other); }
-    constexpr bool operator==(bool other) const CMT_NOEXCEPT { return operator bool() == other; }
-    constexpr bool operator!=(bool other) const CMT_NOEXCEPT { return !operator==(other); }
+    constexpr bool operator!=(const bit& other) const noexcept { return !operator==(other); }
+    constexpr bool operator==(bool other) const noexcept { return operator bool() == other; }
+    constexpr bool operator!=(bool other) const noexcept { return !operator==(other); }
 };
 
 template <typename T>
@@ -248,12 +243,12 @@ struct special_scalar_constants<bit<T>>
 namespace internal_generic
 {
 template <typename T>
-struct unwrap_bit
+struct unwrap_bit_impl
 {
     using type = T;
 };
 template <typename T>
-struct unwrap_bit<bit<T>>
+struct unwrap_bit_impl<bit<T>>
 {
     using type = T;
 };
@@ -261,7 +256,7 @@ struct unwrap_bit<bit<T>>
 } // namespace internal_generic
 
 template <typename T>
-using unwrap_bit = typename internal_generic::unwrap_bit<T>::type;
+using unwrap_bit = typename internal_generic::unwrap_bit_impl<T>::type;
 
 template <typename T>
 constexpr inline bool is_bit = false;
@@ -269,54 +264,56 @@ template <typename T>
 constexpr inline bool is_bit<bit<T>> = true;
 
 template <typename T>
-CMT_INTRINSIC T unwrap_bit_value(const T& value)
+KFR_INTRINSIC T unwrap_bit_value(const T& value)
 {
     return value;
 }
 template <typename T>
-CMT_INTRINSIC T unwrap_bit_value(const bit<T>& value)
+KFR_INTRINSIC T unwrap_bit_value(const bit<T>& value)
 {
     return value.value;
 }
 
-template <typename T, KFR_ENABLE_IF(is_bit<T>)>
-CMT_INTRINSIC T wrap_bit_value(const unwrap_bit<T>& value)
+template <typename T>
+    requires(is_bit<T>)
+KFR_INTRINSIC T wrap_bit_value(const unwrap_bit<T>& value)
 {
     T result;
     result.value = value;
     return result;
 }
 
-template <typename T, KFR_ENABLE_IF(!is_bit<T>)>
-CMT_INTRINSIC T wrap_bit_value(const T& value)
+template <typename T>
+    requires(!is_bit<T>)
+KFR_INTRINSIC T wrap_bit_value(const T& value)
 {
     return value;
 }
 
 namespace fn_generic
 {
-///@copybrief cometa::pass_through
-using pass_through = cometa::fn_pass_through;
+///@copybrief kfr::pass_through
+using pass_through = kfr::fn_pass_through;
 
-///@copybrief cometa::noop
-using noop = cometa::fn_noop;
+///@copybrief kfr::noop
+using noop = kfr::fn_noop;
 
-///@copybrief cometa::get_first
-using get_first = cometa::fn_get_first;
+///@copybrief kfr::get_first
+using get_first = kfr::fn_get_first;
 
-///@copybrief cometa::get_second
-using get_second = cometa::fn_get_second;
+///@copybrief kfr::get_second
+using get_second = kfr::fn_get_second;
 
-///@copybrief cometa::get_third
-using get_third = cometa::fn_get_third;
+///@copybrief kfr::get_third
+using get_third = kfr::fn_get_third;
 
-///@copybrief cometa::returns
+///@copybrief kfr::returns
 template <typename T>
-using returns = cometa::fn_returns<T>;
+using returns = kfr::fn_returns<T>;
 } // namespace fn_generic
 
-CMT_PRAGMA_GNU(GCC diagnostic push)
-CMT_PRAGMA_GNU(GCC diagnostic ignored "-Wattributes")
+KFR_PRAGMA_GNU(GCC diagnostic push)
+KFR_PRAGMA_GNU(GCC diagnostic ignored "-Wattributes")
 
 template <typename T, bool A>
 struct struct_with_alignment
@@ -335,12 +332,12 @@ struct struct_with_alignment<T, false>
     T value;
     KFR_MEM_INTRINSIC void operator=(T value) { this->value = value; }
 }
-#ifdef CMT_GNU_ATTRIBUTES
+#ifdef KFR_GNU_ATTRIBUTES
 __attribute__((__packed__, __may_alias__)) //
 #endif
 ;
 
-CMT_PRAGMA_GNU(GCC diagnostic pop)
+KFR_PRAGMA_GNU(GCC diagnostic pop)
 
 /// @brief Fills a value with zeros
 template <typename T1>
@@ -379,15 +376,18 @@ constexpr inline bool is_simd_float_type<bit<T>> = is_simd_float_type<T>;
 template <typename T>
 constexpr inline bool is_simd_int_type<bit<T>> = is_simd_int_type<T>;
 
+template <typename T>
+concept simd_compat = is_simd_type<T>;
+
 template <typename T, size_t N>
 struct vec_shape
 {
     using value_type = T;
-    constexpr static size_t size() CMT_NOEXCEPT { return N; }
-    constexpr vec_shape() CMT_NOEXCEPT = default;
+    constexpr static size_t size() noexcept { return N; }
+    constexpr vec_shape() noexcept = default;
 
     using scalar_type = subtype<T>;
-    constexpr static size_t scalar_size() CMT_NOEXCEPT { return N * compound_type_traits<T>::width; }
+    constexpr static size_t scalar_size() noexcept { return N * compound_type_traits<T>::width; }
 };
 
 constexpr size_t index_undefined = static_cast<size_t>(-1);
@@ -407,12 +407,6 @@ using cunaligned_t = cbool_t<false>;
 constexpr caligned_t caligned{};
 constexpr cunaligned_t cunaligned{};
 
-#ifdef CMT_INTRINSICS_IS_CONSTEXPR
-#define KFR_I_CE constexpr
-#else
-#define KFR_I_CE
-#endif
-
 } // namespace kfr
 
-CMT_PRAGMA_GNU(GCC diagnostic pop)
+KFR_PRAGMA_GNU(GCC diagnostic pop)

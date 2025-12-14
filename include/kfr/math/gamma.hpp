@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -29,21 +29,21 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 /// @brief Returns the approximate gamma function of an argument
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> gamma(const T1& x)
 {
-    return intrinsics::gamma(x);
+    return intr::gamma(x);
 }
 
 /// @brief Returns the approximate factorial of an argument
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+template <numeric T1>
 KFR_FUNCTION flt_type<T1> factorial_approx(const T1& x)
 {
-    return intrinsics::factorial_approx(x);
+    return intr::factorial_approx(x);
 }
 
 constexpr inline uint64_t factorial_table[21] = {
@@ -73,9 +73,9 @@ constexpr inline uint64_t factorial_table[21] = {
 /// @brief Returns the factorial of an argument. Returns max(uint64_t) if does not fit to uint64_t
 constexpr uint64_t factorial(int n)
 {
-    if (CMT_LIKELY(n < 0 || n > 20))
+    if (KFR_LIKELY(n < 0 || n > 20))
         return std::numeric_limits<uint64_t>::max();
     return factorial_table[n];
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

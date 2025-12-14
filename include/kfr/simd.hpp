@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -25,8 +25,8 @@
 #include "simd/abs.hpp"
 #include "simd/clamp.hpp"
 #include "simd/comparison.hpp"
-#include "simd/complex.hpp"
 #include "simd/complex_type.hpp"
+#include "simd/complex.hpp"
 #include "simd/constants.hpp"
 #include "simd/digitreverse.hpp"
 #include "simd/horizontal.hpp"

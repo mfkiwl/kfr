@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -29,80 +29,159 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-/// @brief Returns the largest integer value not greater than x
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+/**
+ * @brief Returns the largest integer value not greater than @p x.
+ * @tparam T1 Numeric type.
+ * @param x Input value.
+ * @return The largest integer value not greater than @p x.
+ */
+template <numeric T1>
 KFR_INTRINSIC T1 floor(const T1& x)
 {
-    return intrinsics::floor(x);
+    return intr::floor(x);
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+/**
+ * @brief Returns the smallest integer value not less than @p x.
+ * @tparam T1 Numeric type.
+ * @param x Input value.
+ * @return The smallest integer value not less than @p x.
+ */
+template <numeric T1>
 KFR_INTRINSIC T1 ceil(const T1& x)
 {
-    return intrinsics::ceil(x);
+    return intr::ceil(x);
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+/**
+ * @brief Returns the nearest integer value to @p x.
+ * @tparam T1 Numeric type.
+ * @param x Input value.
+ * @return The nearest integer value to @p x.
+ */
+template <numeric T1>
 KFR_INTRINSIC T1 round(const T1& x)
 {
-    return intrinsics::round(x);
+    return intr::round(x);
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+/**
+ * @brief Returns the integer part of @p x by removing its fractional part.
+ * @tparam T1 Numeric type.
+ * @param x Input value.
+ * @return The truncated integer part of @p x.
+ */
+template <numeric T1>
 KFR_INTRINSIC T1 trunc(const T1& x)
 {
-    return intrinsics::trunc(x);
+    return intr::trunc(x);
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+/**
+ * @brief Returns the fractional part of @p x.
+ * @tparam T1 Numeric type.
+ * @param x Input value.
+ * @return The fractional part of @p x.
+ */
+template <numeric T1>
 KFR_INTRINSIC T1 fract(const T1& x)
 {
-    return intrinsics::fract(x);
+    return intr::fract(x);
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+/**
+ * @brief Returns the largest integer value not greater than @p x, as an integer type.
+ * @tparam T1 Numeric type.
+ * @param x Input value.
+ * @return Integer equivalent of floor(@p x).
+ */
+template <numeric T1>
 KFR_INTRINSIC itype<T1> ifloor(const T1& x)
 {
-    return intrinsics::ifloor(x);
+    return intr::ifloor(x);
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+/**
+ * @brief Returns the smallest integer value not less than @p x, as an integer type.
+ * @tparam T1 Numeric type.
+ * @param x Input value.
+ * @return Integer equivalent of ceil(@p x).
+ */
+template <numeric T1>
 KFR_INTRINSIC itype<T1> iceil(const T1& x)
 {
-    return intrinsics::iceil(x);
+    return intr::iceil(x);
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+/**
+ * @brief Returns the nearest integer value to @p x, as an integer type.
+ * @tparam T1 Numeric type.
+ * @param x Input value.
+ * @return Integer equivalent of round(@p x).
+ */
+template <numeric T1>
 KFR_INTRINSIC itype<T1> iround(const T1& x)
 {
-    return intrinsics::iround(x);
+    return intr::iround(x);
 }
 
-template <typename T1, KFR_ENABLE_IF(is_numeric<T1>)>
+/**
+ * @brief Returns the truncated integer part of @p x, as an integer type.
+ * @tparam T1 Numeric type.
+ * @param x Input value.
+ * @return Integer equivalent of trunc(@p x).
+ */
+template <numeric T1>
 KFR_INTRINSIC itype<T1> itrunc(const T1& x)
 {
-    return intrinsics::itrunc(x);
+    return intr::itrunc(x);
 }
 
-template <typename T, KFR_ENABLE_IF(is_f_class<T>)>
+/**
+ * @brief Returns the floating-point remainder of dividing @p x by @p y.
+ * @tparam T Floating-point type.
+ * @param x Dividend.
+ * @param y Divisor.
+ * @return The remainder of the division @p x / @p y.
+ */
+template <f_class T>
 KFR_INTRINSIC T fmod(const T& x, const T& y)
 {
     return x - trunc(x / y) * y;
 }
 KFR_FN(fmod)
 
-template <typename T, size_t N, KFR_ENABLE_IF(!is_f_class<T>)>
+/**
+ * @brief Returns the element-wise remainder of integer vectors @p x and @p y.
+ * @tparam T Integer type.
+ * @tparam N Number of elements in the vector.
+ * @param x Dividend vector.
+ * @param y Divisor vector.
+ * @return Element-wise remainder of @p x divided by @p y.
+ */
+template <not_f_class T, size_t N>
 constexpr KFR_INTRINSIC vec<T, N> rem(const vec<T, N>& x, const vec<T, N>& y)
 {
     return x % y;
 }
-template <typename T, size_t N, KFR_ENABLE_IF(is_f_class<T>)>
+
+/**
+ * @brief Returns the element-wise floating-point remainder of vectors @p x and @p y.
+ * @tparam T Floating-point type.
+ * @tparam N Number of elements in the vector.
+ * @param x Dividend vector.
+ * @param y Divisor vector.
+ * @return Element-wise floating-point remainder of @p x divided by @p y.
+ */
+template <f_class T, size_t N>
 KFR_INTRINSIC vec<T, N> rem(const vec<T, N>& x, const vec<T, N>& y)
 {
     return fmod(x, y);
 }
-} // namespace CMT_ARCH_NAME
+
+} // namespace KFR_ARCH_NAME
 } // namespace kfr
+/** @} */

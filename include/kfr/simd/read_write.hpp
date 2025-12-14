@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -30,20 +30,20 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <size_t N, bool A = false, typename T>
 KFR_INTRINSIC vec<T, N> read(const T* src)
 {
-    return vec<T, N>::from_flatten(intrinsics::read(cbool<A>, csize<N * compound_type_traits<T>::deep_width>,
-                                                    ptr_cast<deep_subtype<T>>(src)));
+    return vec<T, N>::from_flatten(
+        intr::read(cbool<A>, csize<N * compound_type_traits<T>::deep_width>, ptr_cast<deep_subtype<T>>(src)));
 }
 
 template <bool A = false, size_t N, typename T>
 KFR_INTRINSIC void write(T* dest, const vec<T, N>& value)
 {
-    intrinsics::write(cbool<A>, ptr_cast<deep_subtype<T>>(dest), value.flatten());
+    intr::write(cbool<A>, ptr_cast<deep_subtype<T>>(dest), value.flatten());
 }
 
 namespace internal
@@ -51,7 +51,7 @@ namespace internal
 template <size_t group, size_t count, size_t N, bool A, typename T, size_t... indices>
 KFR_INTRINSIC vec<T, group * count * N> read_group_impl(const T* src, size_t stride, csizes_t<indices...>)
 {
-    return concat(intrinsics::read(cbool<A>, csize<N * group>, src + group * stride * indices)...);
+    return concat(intr::read(cbool<A>, csize<N * group>, src + group * stride * indices)...);
 }
 template <size_t group, size_t count, size_t N, bool A, typename T, size_t... indices>
 KFR_INTRINSIC void write_group_impl(T* dest, size_t stride, const vec<T, group * count * N>& value,
@@ -289,9 +289,9 @@ constexpr T partial_masks[] = { special_constants<T>::allones(),
 template <typename T, size_t N>
 KFR_INTRINSIC vec<T, N> partial_mask(size_t index)
 {
-    static_assert(N <= arraysize(partial_masks<T>) / 2,
+    static_assert(N <= std::size(partial_masks<T>) / 2,
                   "N must not be greater than half of partial_masks array");
-    return read<N>(&partial_masks<T>[0] + arraysize(partial_masks<T>) / 2 - index);
+    return read<N>(&partial_masks<T>[0] + std::size(partial_masks<T>) / 2 - index);
 }
 template <typename T, size_t N>
 KFR_INTRINSIC vec<T, N> partial_mask(size_t index, vec_shape<T, N>)
@@ -302,20 +302,19 @@ KFR_INTRINSIC vec<T, N> partial_mask(size_t index, vec_shape<T, N>)
 // read/write
 template <typename T, size_t N>
 template <bool aligned>
-KFR_MEM_INTRINSIC constexpr vec<T, N>::vec(const value_type* src, cbool_t<aligned>) CMT_NOEXCEPT
-    : vec(vec<T, N>::from_flatten(intrinsics::read(cbool<aligned>,
-                                                   csize<N * compound_type_traits<T>::deep_width>,
-                                                   ptr_cast<deep_subtype<T>>(src))))
+KFR_MEM_INTRINSIC constexpr vec<T, N>::vec(const value_type* src, cbool_t<aligned>) noexcept
+    : vec(vec<T, N>::from_flatten(intr::read(cbool<aligned>, csize<N * compound_type_traits<T>::deep_width>,
+                                             ptr_cast<deep_subtype<T>>(src))))
 {
 }
 
 template <typename T, size_t N>
 template <bool aligned>
-KFR_MEM_INTRINSIC const vec<T, N>& vec<T, N>::write(value_type* dest, cbool_t<aligned>) const CMT_NOEXCEPT
+KFR_MEM_INTRINSIC const vec<T, N>& vec<T, N>::write(value_type* dest, cbool_t<aligned>) const noexcept
 {
-    intrinsics::write(cbool<aligned>, ptr_cast<deep_subtype<T>>(dest), flatten());
+    intr::write(cbool<aligned>, ptr_cast<deep_subtype<T>>(dest), flatten());
     return *this;
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

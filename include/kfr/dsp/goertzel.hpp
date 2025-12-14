@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T>
@@ -57,10 +57,10 @@ struct expression_goertzel : expression_traits_defaults
 
     template <size_t N, index_t VecAxis>
     friend KFR_INTRINSIC void set_elements(expression_goertzel& self, shape<1>, axis_params<VecAxis, N>,
-                                           const identity<vec<T, N>>& x)
+                                           const std::type_identity_t<vec<T, N>>& x)
     {
         vec<T, N> in = x;
-        CMT_LOOP_UNROLL
+        KFR_LOOP_UNROLL
         for (size_t i = 0; i < N; i++)
         {
             self.q0 = self.coeff * self.q1 - self.q2 + in[i];
@@ -105,10 +105,10 @@ struct expression_parallel_goertzel : expression_traits_defaults
     }
     template <size_t N, index_t VecAxis>
     friend KFR_INTRINSIC void set_elements(expression_parallel_goertzel& self, shape<1>,
-                                           axis_params<VecAxis, N>, const identity<vec<T, N>>& x)
+                                           axis_params<VecAxis, N>, const std::type_identity_t<vec<T, N>>& x)
     {
         const vec<T, N> in = x;
-        CMT_LOOP_UNROLL
+        KFR_LOOP_UNROLL
         for (size_t i = 0; i < N; i++)
         {
             self.q0 = self.coeff * self.q1 - self.q2 + in[i];
@@ -125,7 +125,7 @@ struct expression_parallel_goertzel : expression_traits_defaults
 };
 
 template <typename T>
-KFR_INTRINSIC expression_goertzel<T> goertzel(complex<T>& result, identity<T> omega)
+KFR_INTRINSIC expression_goertzel<T> goertzel(complex<T>& result, std::type_identity_t<T> omega)
 {
     return expression_goertzel<T>(result, omega);
 }
@@ -136,5 +136,5 @@ KFR_INTRINSIC expression_parallel_goertzel<T, width> goertzel(complex<T> (&resul
 {
     return expression_parallel_goertzel<T, width>(result, read<width>(omega));
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

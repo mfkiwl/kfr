@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -12,14 +12,14 @@
 #include <kfr/io/tostring.hpp>
 #include <kfr/simd.hpp>
 
-CMT_PRAGMA_MSVC(warning(push))
-CMT_PRAGMA_MSVC(warning(disable : 5051))
-CMT_PRAGMA_MSVC(warning(disable : 4244))
+KFR_PRAGMA_MSVC(warning(push))
+KFR_PRAGMA_MSVC(warning(disable : 5051))
+KFR_PRAGMA_MSVC(warning(disable : 4244))
 
 namespace kfr
 {
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 template <typename T, bool Transposed = false>
 struct expression_test_matrix : public expression_traits_defaults
@@ -71,7 +71,7 @@ static void test_transpose(size_t rows, size_t cols, size_t mark = 10000)
 
     matrix_transpose(d2.data(), d.data(), shape{ rows, cols });
 
-    testo::scope s(as_string("type=", type_name<T>(), " rows=", rows, " cols=", cols));
+    INFO(as_string("type=", type_name<T>(), " rows=", rows, " cols=", cols));
 
     auto erro = maxof(cabs(t2 - expression_test_matrix<T, true>(rows, cols, mark)));
     CHECK(erro == 0);
@@ -88,7 +88,7 @@ static void test_transpose(size_t rows, size_t cols, size_t mark = 10000)
     test_transpose<complex<double>>(rows, cols, mark);
 }
 
-TEST(matrix_transpose)
+TEST_CASE("matrix_transpose")
 {
     constexpr size_t limit = 100;
 
@@ -124,7 +124,7 @@ TEST(matrix_transpose)
                                                              2, 14, 6, 18, 10, 22, 3, 15, 7, 19, 11, 23 });
 }
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr
 
-CMT_PRAGMA_MSVC(warning(pop))
+KFR_PRAGMA_MSVC(warning(pop))

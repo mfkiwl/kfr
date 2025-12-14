@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -28,3 +28,8 @@
 #include "dft/convolution.hpp"
 #include "dft/fft.hpp"
 #include "dft/reference_dft.hpp"
+
+namespace kfr
+{
+const char* library_version_dft();
+}

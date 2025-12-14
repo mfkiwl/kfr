@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -32,7 +32,7 @@
 #include "expression.hpp"
 #include <functional>
 
-#ifdef CMT_ARCH_ARM
+#if !defined KFR_ARCH_X86
 #define KFR_DISABLE_READCYCLECOUNTER
 #endif
 
@@ -59,7 +59,7 @@ struct random_state
 };
 
 #ifndef KFR_DISABLE_READCYCLECOUNTER
-#ifdef CMT_COMPILER_CLANG
+#ifdef KFR_COMPILER_CLANG
 #define KFR_builtin_readcyclecounter()                                                                       \
     static_cast<u64>(__builtin_readcyclecounter()) // Intel C++ requires cast here
 #else
@@ -69,9 +69,17 @@ struct random_state
 
 static_assert(sizeof(random_state) == 16, "sizeof(random_state) == 16");
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
-
+/**
+ * @brief Advances the internal state of the pseudo-random number generator.
+ *
+ * This function uses a SIMD-optimized linear congruential method with distinct
+ * multiplier and adder constants for each 32-bit lane. The resulting values are
+ * further randomized using a byte-wise rotate operation.
+ *
+ * @param state Reference to the internal random number generator state to update.
+ */
 KFR_INTRINSIC void random_next(random_state& state)
 {
     constexpr static portable_vec<u32, 4> mul{ 214013u, 17405u, 214013u, 69069u };
@@ -81,6 +89,15 @@ KFR_INTRINSIC void random_next(random_state& state)
 }
 
 #ifndef KFR_DISABLE_READCYCLECOUNTER
+/**
+ * @brief Initializes the random number generator state using the CPU cycle counter.
+ *
+ * This variant seeds the generator using the result of `KFR_builtin_readcyclecounter()`,
+ * ensuring variability across executions. It is only available when
+ * `KFR_DISABLE_READCYCLECOUNTER` is not defined.
+ *
+ * @return A new random_state initialized with cycle counter entropy.
+ */
 KFR_INTRINSIC random_state random_init()
 {
     random_state state;
@@ -91,6 +108,18 @@ KFR_INTRINSIC random_state random_init()
 }
 #endif
 
+/**
+ * @brief Initializes the random number generator with four 32-bit seed values.
+ *
+ * This overload allows precise seeding of the internal 128-bit state using four
+ * 32-bit unsigned integers.
+ *
+ * @param x0 First 32-bit seed value.
+ * @param x1 Second 32-bit seed value.
+ * @param x2 Third 32-bit seed value.
+ * @param x3 Fourth 32-bit seed value.
+ * @return A new random_state initialized with the provided seeds.
+ */
 KFR_INTRINSIC random_state random_init(u32 x0, u32 x1, u32 x2, u32 x3)
 {
     random_state state;
@@ -99,6 +128,16 @@ KFR_INTRINSIC random_state random_init(u32 x0, u32 x1, u32 x2, u32 x3)
     return state;
 }
 
+/**
+ * @brief Initializes the random number generator with two 64-bit seed values.
+ *
+ * This overload combines two 64-bit unsigned integers into four 32-bit lanes
+ * for initializing the internal 128-bit state.
+ *
+ * @param x0 First 64-bit seed value.
+ * @param x1 Second 64-bit seed value.
+ * @return A new random_state initialized with the provided seeds.
+ */
 KFR_INTRINSIC random_state random_init(u64 x0, u64 x1)
 {
     random_state state;
@@ -108,14 +147,46 @@ KFR_INTRINSIC random_state random_init(u64 x0, u64 x1)
     return state;
 }
 
-template <size_t N, KFR_ENABLE_IF(N <= sizeof(random_state))>
+/**
+ * @brief Generates up to 16 bytes of random data.
+ *
+ * For output sizes less than or equal to 16 bytes (128 bits), this function returns
+ * a random byte vector generated from a single call to `random_next`.
+ *
+ * @tparam N Number of random bytes to generate (N <= 16).
+ * @param state Reference to the random number generator state.
+ * @return A vector of N random bytes.
+ *
+ * @note This generator is stateless beyond its internal 128-bit state. It holds
+ * no internal buffer, so **each call to `random_bits` advances the state** and
+ * generates **at least 128 bits** of random data. To maintain deterministic
+ * behavior across runs, always request the same size `N` in each usage scenario.
+ */
+template <size_t N>
+    requires(N <= sizeof(random_state))
 KFR_INTRINSIC vec<u8, N> random_bits(random_state& state)
 {
     random_next(state);
     return narrow<N>(bitcast<u8>(u32x4(state.v)));
 }
 
-template <size_t N, KFR_ENABLE_IF(N > sizeof(random_state))>
+/**
+ * @brief Generates more than 16 bytes of random data.
+ *
+ * For output sizes greater than 16 bytes, this function recursively combines smaller
+ * calls to `random_bits` to generate the requested number of random bytes.
+ *
+ * @tparam N Number of random bytes to generate (N > 16).
+ * @param state Reference to the random number generator state.
+ * @return A vector of N random bytes.
+ *
+ * @note This generator is stateless beyond its internal 128-bit state. It holds
+ * no internal buffer, so **each call to `random_bits` advances the state** and
+ * generates **at least 128 bits** of random data. To maintain deterministic
+ * behavior across runs, always request the same size `N` in each usage scenario.
+ */
+template <size_t N>
+    requires(N > sizeof(random_state))
 KFR_INTRINSIC vec<u8, N> random_bits(random_state& state)
 {
     constexpr size_t N2         = prev_poweroftwo(N - 1);
@@ -123,5 +194,5 @@ KFR_INTRINSIC vec<u8, N> random_bits(random_state& state)
     const vec<u8, N - N2> bits2 = random_bits<N - N2>(state);
     return concat(bits1, bits2);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

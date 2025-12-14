@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -29,47 +29,43 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 /**
  * @brief Returns the smaller of two values.
  */
-template <typename T1, typename T2, KFR_ENABLE_IF(is_numeric_args<T1, T2>),
-          typename Tout = std::common_type_t<T1, T2>>
+template <numeric T1, numeric T2, typename Tout = std::common_type_t<T1, T2>>
 KFR_INTRINSIC Tout min(const T1& x, const T2& y)
 {
-    return intrinsics::min(x, y);
+    return intr::min(x, y);
 }
 
 /**
  * @brief Returns the greater of two values.
  */
-template <typename T1, typename T2, KFR_ENABLE_IF(is_numeric_args<T1, T2>),
-          typename Tout = std::common_type_t<T1, T2>>
+template <numeric T1, numeric T2, typename Tout = std::common_type_t<T1, T2>>
 KFR_INTRINSIC Tout max(const T1& x, const T2& y)
 {
-    return intrinsics::max(x, y);
+    return intr::max(x, y);
 }
 
 /**
  * @brief Returns the smaller in magnitude of two values.
  */
-template <typename T1, typename T2, KFR_ENABLE_IF(is_numeric_args<T1, T2>),
-          typename Tout = std::common_type_t<T1, T2>>
+template <numeric T1, numeric T2, typename Tout = std::common_type_t<T1, T2>>
 KFR_INTRINSIC Tout absmin(const T1& x, const T2& y)
 {
-    return intrinsics::absmin(x, y);
+    return intr::absmin(x, y);
 }
 
 /**
  * @brief Returns the greater in magnitude of two values.
  */
-template <typename T1, typename T2, KFR_ENABLE_IF(is_numeric_args<T1, T2>),
-          typename Tout = std::common_type_t<T1, T2>>
+template <numeric T1, numeric T2, typename Tout = std::common_type_t<T1, T2>>
 KFR_INTRINSIC Tout absmax(const T1& x, const T2& y)
 {
-    return intrinsics::absmax(x, y);
+    return intr::absmax(x, y);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

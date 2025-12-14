@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -27,13 +27,13 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 
-#if defined CMT_ARCH_SSE41 && defined KFR_NATIVE_INTRINSICS
+#if defined KFR_ARCH_SSE41 && defined KFR_NATIVE_INTRINSICS
 
 KFR_INTRINSIC u8sse select(const mu8sse& m, const u8sse& x, const u8sse& y)
 {
@@ -76,7 +76,7 @@ KFR_INTRINSIC f64sse select(const mf64sse& m, const f64sse& x, const f64sse& y)
     return _mm_blendv_pd(y.v, x.v, m.v);
 }
 
-#if defined CMT_ARCH_AVX
+#if defined KFR_ARCH_AVX
 KFR_INTRINSIC f64avx select(const mf64avx& m, const f64avx& x, const f64avx& y)
 {
     return _mm256_blendv_pd(y.v, x.v, m.v);
@@ -87,7 +87,7 @@ KFR_INTRINSIC f32avx select(const mf32avx& m, const f32avx& x, const f32avx& y)
 }
 #endif
 
-#if defined CMT_ARCH_AVX2
+#if defined KFR_ARCH_AVX2
 KFR_INTRINSIC u8avx select(const mu8avx& m, const u8avx& x, const u8avx& y)
 {
     return _mm256_blendv_epi8(y.v, x.v, m.v);
@@ -122,7 +122,7 @@ KFR_INTRINSIC i64avx select(const mi64avx& m, const i64avx& x, const i64avx& y)
 }
 #endif
 
-#if defined CMT_ARCH_AVX512
+#if defined KFR_ARCH_AVX512
 KFR_INTRINSIC f64avx512 select(const mf64avx512& m, const f64avx512& x, const f64avx512& y)
 {
     return _mm512_mask_blend_pd(_mm512_movepi64_mask(_mm512_castpd_si512(m.v)), y.v, x.v);
@@ -165,58 +165,66 @@ KFR_INTRINSIC i64avx512 select(const mi64avx512& m, const i64avx512& x, const i6
 }
 #endif
 
-template <typename T, size_t N, KFR_ENABLE_IF(N < vector_width<T> && !is_simd_size<T>(N))>
+template <typename T, size_t N>
+    requires(N < vector_width<T> && !is_simd_size<T>(N))
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const vec<T, N>& b, const vec<T, N>& c)
 {
     constexpr size_t Nout = next_simd_width<T>(N);
     return select(a.shuffle(csizeseq<Nout>), b.shuffle(csizeseq<Nout>), c.shuffle(csizeseq<Nout>))
         .shuffle(csizeseq<N>);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N > vector_width<T>), typename = void>
+template <typename T, size_t N>
+    requires(N > vector_width<T>)
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const vec<T, N>& b, const vec<T, N>& c)
 {
     return concat(select(low(a), low(b), low(c)), select(high(a), high(b), high(c)));
     //    return concat2(select(a.h.low, b.h.low, c.h.low), select(a.h.high, b.h.high, c.h.high));
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(N < vector_width<T> && !is_simd_size<T>(N))>
+template <typename T, size_t N>
+    requires(N < vector_width<T> && !is_simd_size<T>(N))
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const T& b, const T& c)
 {
     constexpr size_t Nout = next_simd_width<T>(N);
     return select(a.shuffle(csizeseq<Nout>), vec<T, Nout>(b), vec<T, Nout>(c)).shuffle(csizeseq<N>);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N > vector_width<T>), typename = void>
+template <typename T, size_t N>
+    requires(N > vector_width<T>)
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const T& b, const T& c)
 {
     return concat2(select(a.h.low, b, c), select(a.h.high, b, c));
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(N < vector_width<T> && !is_simd_size<T>(N))>
+template <typename T, size_t N>
+    requires(N < vector_width<T> && !is_simd_size<T>(N))
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const vec<T, N>& b, const T& c)
 {
     constexpr size_t Nout = next_simd_width<T>(N);
     return select(a.shuffle(csizeseq<Nout>), b.shuffle(csizeseq<Nout>), vec<T, Nout>(c)).shuffle(csizeseq<N>);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N > vector_width<T>), typename = void>
+template <typename T, size_t N>
+    requires(N > vector_width<T>)
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const vec<T, N>& b, const T& c)
 {
     return concat2(select(a.h.low, b.h.low, c), select(a.h.high, b.h.high, c));
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(N < vector_width<T> && !is_simd_size<T>(N))>
+template <typename T, size_t N>
+    requires(N < vector_width<T> && !is_simd_size<T>(N))
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const T& b, const vec<T, N>& c)
 {
     constexpr size_t Nout = next_simd_width<T>(N);
     return select(shufflevector(a, csizeseq<Nout>), vec<T, Nout>(b), c.shuffle(csizeseq<Nout>))
         .shuffle(csizeseq<N>);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N > vector_width<T>), typename = void>
+template <typename T, size_t N>
+    requires(N > vector_width<T>)
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const T& b, const vec<T, N>& c)
 {
     return concat2(select(a.h.low, b, c.h.low), select(a.h.high, b, c.h.high));
 }
 
-#elif defined CMT_ARCH_NEON && defined KFR_NATIVE_INTRINSICS
+#elif defined KFR_ARCH_NEON && defined KFR_NATIVE_INTRINSICS
 
 KFR_INTRINSIC f32neon select(const mf32neon& m, const f32neon& x, const f32neon& y)
 {
@@ -255,7 +263,7 @@ KFR_INTRINSIC u64neon select(const mu64neon& m, const u64neon& x, const u64neon&
     return vbslq_u64(m.v, x.v, y.v);
 }
 
-#ifdef CMT_ARCH_NEON64
+#ifdef KFR_ARCH_NEON64
 KFR_INTRINSIC f64neon select(const mf64neon& m, const f64neon& x, const f64neon& y)
 {
     return vbslq_f64(m.v, x.v, y.v);
@@ -267,14 +275,94 @@ KFR_INTRINSIC f64neon select(const mf64neon& m, const f64neon& x, const f64neon&
 }
 #endif
 
-template <typename T, size_t N, KFR_ENABLE_IF(N < vector_width<T> && !is_simd_size<T>(N))>
+template <typename T, size_t N>
+    requires(N < vector_width<T> && !is_simd_size<T>(N))
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const vec<T, N>& b, const vec<T, N>& c)
 {
     constexpr size_t Nout = next_simd_width<T>(N);
     return select(a.shuffle(csizeseq<Nout>), b.shuffle(csizeseq<Nout>), c.shuffle(csizeseq<Nout>))
         .shuffle(csizeseq<N>);
 }
-template <typename T, size_t N, KFR_ENABLE_IF(N > vector_width<T>), typename = void>
+template <typename T, size_t N>
+    requires(N > vector_width<T>)
+KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const vec<T, N>& b, const vec<T, N>& c)
+{
+    return concat2(select(a.h.low, b.h.low, c.h.low), select(a.h.high, b.h.high, c.h.high));
+}
+template <typename T, size_t N>
+KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& m, const T& x, const T& y)
+{
+    return select(m, vec<T, N>(x), vec<T, N>(y));
+}
+template <typename T, size_t N>
+KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& m, const vec<T, N>& x, const T& y)
+{
+    return select(m, x, vec<T, N>(y));
+}
+template <typename T, size_t N>
+KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& m, const T& x, const vec<T, N>& y)
+{
+    return select(m, vec<T, N>(x), y);
+}
+
+#elif KFR_ARCH_RVV && defined KFR_NATIVE_INTRINSICS
+
+KFR_INTRINSIC f32rvv select(const mf32rvv& m, const f32rvv& x, const f32rvv& y)
+{
+    return __riscv_vmerge_vvm_f32m1(
+        y.v, x.v, __riscv_vmslt_vx_i32m1_b32(__riscv_vreinterpret_v_f32m1_i32m1(m.v), 0, f32rvv::SN),
+        f32rvv::SN);
+}
+KFR_INTRINSIC f64rvv select(const mf64rvv& m, const f64rvv& x, const f64rvv& y)
+{
+    return __riscv_vmerge_vvm_f64m1(
+        y.v, x.v, __riscv_vmslt_vx_i64m1_b64(__riscv_vreinterpret_v_f64m1_i64m1(m.v), 0, f64rvv::SN),
+        f64rvv::SN);
+}
+
+KFR_INTRINSIC i8rvv select(const mi8rvv& m, const i8rvv& x, const i8rvv& y)
+{
+    return __riscv_vmerge_vvm_i8m1(y.v, x.v, __riscv_vmslt_vx_i8m1_b8(m.v, 0, i8rvv::SN), i8rvv::SN);
+}
+KFR_INTRINSIC u8rvv select(const mu8rvv& m, const u8rvv& x, const u8rvv& y)
+{
+    return __riscv_vmerge_vvm_u8m1(y.v, x.v, __riscv_vmslt_vx_i8m1_b8(m.v, 0, i8rvv::SN), u8rvv::SN);
+}
+KFR_INTRINSIC i16rvv select(const mi16rvv& m, const i16rvv& x, const i16rvv& y)
+{
+    return __riscv_vmerge_vvm_i16m1(y.v, x.v, __riscv_vmslt_vx_i16m1_b16(m.v, 0, i16rvv::SN), i16rvv::SN);
+}
+KFR_INTRINSIC u16rvv select(const mu16rvv& m, const u16rvv& x, const u16rvv& y)
+{
+    return __riscv_vmerge_vvm_u16m1(y.v, x.v, __riscv_vmslt_vx_i16m1_b16(m.v, 0, i16rvv::SN), u16rvv::SN);
+}
+KFR_INTRINSIC i32rvv select(const mi32rvv& m, const i32rvv& x, const i32rvv& y)
+{
+    return __riscv_vmerge_vvm_i32m1(y.v, x.v, __riscv_vmslt_vx_i32m1_b32(m.v, 0, i32rvv::SN), i32rvv::SN);
+}
+KFR_INTRINSIC u32rvv select(const mu32rvv& m, const u32rvv& x, const u32rvv& y)
+{
+    return __riscv_vmerge_vvm_u32m1(y.v, x.v, __riscv_vmslt_vx_i32m1_b32(m.v, 0, i32rvv::SN), u32rvv::SN);
+}
+KFR_INTRINSIC i64rvv select(const mi64rvv& m, const i64rvv& x, const i64rvv& y)
+{
+    return __riscv_vmerge_vvm_i64m1(y.v, x.v, __riscv_vmslt_vx_i64m1_b64(m.v, 0, i64rvv::SN), i64rvv::SN);
+}
+KFR_INTRINSIC u64rvv select(const mu64rvv& m, const u64rvv& x, const u64rvv& y)
+{
+    return __riscv_vmerge_vvm_u64m1(y.v, x.v, __riscv_vmslt_vx_i64m1_b64(m.v, 0, i64rvv::SN), u64rvv::SN);
+}
+
+template <typename T, size_t N>
+    requires(N < vector_width<T> && !is_simd_size<T>(N))
+KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const vec<T, N>& b, const vec<T, N>& c)
+{
+    constexpr size_t Nout = next_simd_width<T>(N);
+    return select(a.shuffle(csizeseq<Nout>), b.shuffle(csizeseq<Nout>), c.shuffle(csizeseq<Nout>))
+        .shuffle(csizeseq<N>);
+}
+template <typename T, size_t N>
+    requires(N > vector_width<T>)
 KFR_INTRINSIC vec<T, N> select(const vec<bit<T>, N>& a, const vec<T, N>& b, const vec<T, N>& c)
 {
     return concat2(select(a.h.low, b.h.low, c.h.low), select(a.h.high, b.h.high, c.h.high));
@@ -325,7 +413,7 @@ KFR_INTRINSIC std::common_type_t<T1, T2> select(bool m, const T1& x, const T2& y
     return m ? x : y;
 }
 
-} // namespace intrinsics
+} // namespace intr
 KFR_I_FN(select)
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -30,25 +30,30 @@
 namespace kfr
 {
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 /**
- * @brief Returns x[0] && x[1] && ... && x[N-1]
+ * @brief Returns true if all elements are true.
+ *
+ * Equivalent to x[0] && x[1] && ... && x[N-1].
  */
 template <typename T, size_t N>
 KFR_INTRINSIC bool all(const mask<T, N>& x)
 {
-    return intrinsics::bittestall(x);
+    return intr::bittestall(x);
 }
 
 /**
- * @brief Returns x[0] || x[1] || ... || x[N-1]
+ * @brief Returns true if any element is true.
+ *
+ * Equivalent to x[0] || x[1] || ... || x[N-1].
  */
 template <typename T, size_t N>
 KFR_INTRINSIC bool any(const mask<T, N>& x)
 {
-    return intrinsics::bittestany(x);
+    return intr::bittestany(x);
 }
-} // namespace CMT_ARCH_NAME
+
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

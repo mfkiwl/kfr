@@ -1,6 +1,6 @@
 /**
  * KFR (https://www.kfrlib.com)
- * Copyright (C) 2016-2023 Dan Cazarin
+ * Copyright (C) 2016-2025 Dan Casarin
  * See LICENSE.txt for details
  */
 
@@ -8,21 +8,21 @@
 
 #include <kfr/io.hpp>
 
-CMT_PRAGMA_MSVC(warning(push))
-CMT_PRAGMA_MSVC(warning(disable : 4146))
+KFR_PRAGMA_MSVC(warning(push))
+KFR_PRAGMA_MSVC(warning(disable : 4146))
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
-TEST(min)
+TEST_CASE("min")
 {
     test_function2(
         test_catogories::all, [](auto x, auto y) { return kfr::min(x, y); },
         [](auto x, auto y) -> std::common_type_t<decltype(x), decltype(y)> { return x <= y ? x : y; });
 }
 
-TEST(max)
+TEST_CASE("max")
 {
     test_function2(
         test_catogories::all, [](auto x, auto y) { return kfr::max(x, y); },
@@ -32,19 +32,19 @@ TEST(max)
 struct IsNotMinInt
 {
     template <typename T>
-    bool operator()(ctype_t<T>, identity<T> x, identity<T> y) const
+    bool operator()(ctype_t<T>, std::type_identity_t<T> x, std::type_identity_t<T> y) const
     {
         return std::is_floating_point_v<T> || std::is_unsigned_v<T> ||
                (x != std::numeric_limits<T>::min() && y != std::numeric_limits<T>::min());
     }
     template <typename T, size_t N>
-    bool operator()(ctype_t<vec<T, N>>, identity<T> x, identity<T> y) const
+    bool operator()(ctype_t<vec<T, N>>, std::type_identity_t<T> x, std::type_identity_t<T> y) const
     {
-        return operator()(cometa::ctype<T>, x, y);
+        return operator()(kfr::ctype<T>, x, y);
     }
 };
 
-TEST(absmin)
+TEST_CASE("absmin")
 {
     test_function2(
         test_catogories::all, [](auto x, auto y) { return kfr::absmin(x, y); },
@@ -57,7 +57,7 @@ TEST(absmin)
         IsNotMinInt{});
 }
 
-TEST(absmax)
+TEST_CASE("absmax")
 {
     test_function2(
         test_catogories::all, [](auto x, auto y) { return kfr::absmax(x, y); },
@@ -69,7 +69,7 @@ TEST(absmax)
         },
         IsNotMinInt{});
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr
 
-CMT_PRAGMA_MSVC(warning(pop))
+KFR_PRAGMA_MSVC(warning(pop))

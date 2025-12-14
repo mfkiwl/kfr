@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -34,10 +34,10 @@
 
 namespace kfr
 {
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
-namespace intrinsics
+namespace intr
 {
 
 template <size_t N>
@@ -259,7 +259,7 @@ KFR_INTRINSIC vec<T, N> cbrt(const vec<T, N>& x)
     return root<T, N>(x, T(3));
 }
 
-template <typename T, size_t N, KFR_ENABLE_IF(!is_f_class<T>), typename Tout = flt_type<T>>
+template <not_f_class T, size_t N, typename Tout = flt_type<T>>
 KFR_INTRINSIC vec<Tout, N> cbrt(const vec<T, N>& x)
 {
     return cbrt(broadcastto<Tout>(x));
@@ -317,7 +317,7 @@ KFR_INTRINSIC flt_type<std::common_type_t<T1, T2, T3>> log_fmadd(const T1& x, co
 {
     return fmadd(log(x), m, a);
 }
-} // namespace intrinsics
+} // namespace intr
 KFR_I_FN(exp)
 KFR_I_FN(exp2)
 KFR_I_FN(exp10)
@@ -332,5 +332,5 @@ KFR_I_FN(log_fmadd)
 KFR_I_FN(pow)
 KFR_I_FN(root)
 KFR_I_FN(cbrt)
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 } // namespace kfr

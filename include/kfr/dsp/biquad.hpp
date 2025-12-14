@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -31,7 +31,7 @@
 #include "../simd/operators.hpp"
 #include "../base/state_holder.hpp"
 #include "../simd/vec.hpp"
-#include "../testo/assert.hpp"
+#include "../test/assert.hpp"
 
 namespace kfr
 {
@@ -63,23 +63,16 @@ template <typename T>
 struct biquad_section
 {
     template <typename U>
-    constexpr biquad_section(const biquad_section<U>& bq) CMT_NOEXCEPT : a0(static_cast<T>(bq.a0)),
-                                                                         a1(static_cast<T>(bq.a1)),
-                                                                         a2(static_cast<T>(bq.a2)),
-                                                                         b0(static_cast<T>(bq.b0)),
-                                                                         b1(static_cast<T>(bq.b1)),
-                                                                         b2(static_cast<T>(bq.b2))
+    constexpr biquad_section(const biquad_section<U>& bq) noexcept
+        : a0(static_cast<T>(bq.a0)), a1(static_cast<T>(bq.a1)), a2(static_cast<T>(bq.a2)),
+          b0(static_cast<T>(bq.b0)), b1(static_cast<T>(bq.b1)), b2(static_cast<T>(bq.b2))
     {
     }
 
     static_assert(std::is_floating_point_v<T>, "T must be a floating point type");
-    constexpr biquad_section() CMT_NOEXCEPT : a0(1), a1(0), a2(0), b0(1), b1(0), b2(0) {}
-    constexpr biquad_section(T a0, T a1, T a2, T b0, T b1, T b2) CMT_NOEXCEPT : a0(a0),
-                                                                                a1(a1),
-                                                                                a2(a2),
-                                                                                b0(b0),
-                                                                                b1(b1),
-                                                                                b2(b2)
+    constexpr biquad_section() noexcept : a0(1), a1(0), a2(0), b0(1), b1(0), b2(0) {}
+    constexpr biquad_section(T a0, T a1, T a2, T b0, T b1, T b2) noexcept
+        : a0(a0), a1(a1), a2(a2), b0(b0), b1(b1), b2(b2)
     {
     }
     T a0;
@@ -104,7 +97,7 @@ struct biquad_state
     vec<T, filters> s1;
     vec<T, filters> s2;
     vec<T, filters> out;
-    constexpr biquad_state() CMT_NOEXCEPT : s1(0), s2(0), out(0) {}
+    constexpr biquad_state() noexcept : s1(0), s2(0), out(0) {}
 };
 
 template <typename T, size_t filters = tag_dynamic_vector>
@@ -116,11 +109,11 @@ struct iir_params
     vec<T, filters> b1;
     vec<T, filters> b2;
 
-    constexpr iir_params() CMT_NOEXCEPT : a1(0), a2(0), b0(1), b1(0), b2(0) {}
-    CMT_GNU_CONSTEXPR iir_params(const biquad_section<T>* bq, size_t count)
+    constexpr iir_params() noexcept : a1(0), a2(0), b0(1), b1(0), b2(0) {}
+    iir_params(const biquad_section<T>* bq, size_t count)
     {
         KFR_LOGIC_CHECK(count <= filters, "iir_params: too many biquad sections");
-        count = const_min(filters, count);
+        count = std::min(filters, count);
         for (size_t i = 0; i < count; i++)
         {
             a1[i] = bq[i].a1;
@@ -139,10 +132,10 @@ struct iir_params
         }
     }
 
-    CMT_GNU_CONSTEXPR iir_params(const biquad_section<T>& one) CMT_NOEXCEPT : iir_params(&one, 1) {}
+    iir_params(const biquad_section<T>& one) noexcept : iir_params(&one, 1) {}
 
-    template <typename Container, CMT_HAS_DATA_SIZE(Container)>
-    constexpr iir_params(Container&& cont) CMT_NOEXCEPT : iir_params(std::data(cont), std::size(cont))
+    template <has_data_size Container>
+    constexpr iir_params(Container&& cont) noexcept : iir_params(std::data(cont), std::size(cont))
     {
     }
 };
@@ -158,14 +151,14 @@ struct iir_params<T, tag_dynamic_vector> : public std::vector<biquad_section<T>>
 
     iir_params(size_t count) : base(count) {}
 
-    iir_params(const biquad_section<T>* bq, size_t count) CMT_NOEXCEPT : base(bq, bq + count) {}
+    iir_params(const biquad_section<T>* bq, size_t count) noexcept : base(bq, bq + count) {}
 
-    iir_params(const biquad_section<T>& one) CMT_NOEXCEPT : iir_params(&one, 1) {}
+    iir_params(const biquad_section<T>& one) noexcept : iir_params(&one, 1) {}
 
-    iir_params(std::vector<biquad_section<T>>&& sections) CMT_NOEXCEPT : base(std::move(sections)) {}
+    iir_params(std::vector<biquad_section<T>>&& sections) noexcept : base(std::move(sections)) {}
 
-    template <typename Container, CMT_HAS_DATA_SIZE(Container)>
-    constexpr iir_params(Container&& cont) CMT_NOEXCEPT : iir_params(std::data(cont), std::size(cont))
+    template <has_data_size Container>
+    constexpr iir_params(Container&& cont) noexcept : iir_params(std::data(cont), std::size(cont))
     {
     }
 
@@ -220,7 +213,7 @@ iir_state(const iir_params<T, filters>&) -> iir_state<T, filters>;
 template <typename T, size_t filters>
 iir_state(iir_params<T, filters>&&) -> iir_state<T, filters>;
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <size_t filters, typename T, typename E1, bool Stateless = false>
@@ -254,7 +247,7 @@ namespace internal
 
 template <size_t filters, typename T>
 KFR_INTRINSIC T biquad_process(vec<T, filters>& out, const iir_params<T, filters>& bq,
-                               biquad_state<T, filters>& state, identity<T> in0,
+                               biquad_state<T, filters>& state, std::type_identity_t<T> in0,
                                const vec<T, filters>& delayline)
 {
     vec<T, filters> in = insertleft(in0, delayline);
@@ -268,9 +261,9 @@ KFR_INTRINSIC vec<T, N> biquad_process(iir_state<T, filters>& state, const vec<T
                                        size_t save_state_after = static_cast<size_t>(-1))
 {
     vec<T, N> out;
-    if (CMT_LIKELY(save_state_after == static_cast<size_t>(-1)))
+    if (KFR_LIKELY(save_state_after == static_cast<size_t>(-1)))
     {
-        CMT_LOOP_UNROLL
+        KFR_LOOP_UNROLL
         for (size_t i = 0; i < N; i++)
         {
             out[i] = biquad_process(state.state.out, state.params, state.state, in[i], state.state.out);
@@ -305,7 +298,8 @@ KFR_INTRINSIC void begin_pass(const expression_iir<1, T, E1, Stateless>&, shape<
 {
 }
 template <size_t filters, typename T, typename E1, bool Stateless>
-KFR_INTRINSIC void begin_pass(const expression_iir<filters, T, E1, Stateless>& self, shape<1> start, shape<1> stop)
+KFR_INTRINSIC void begin_pass(const expression_iir<filters, T, E1, Stateless>& self, shape<1> start,
+                              shape<1> stop)
 {
     size_t size           = stop.front();
     self.state->block_end = size;
@@ -322,7 +316,8 @@ KFR_INTRINSIC void end_pass(const expression_iir<1, T, E1, Stateless>&, shape<1>
 {
 }
 template <size_t filters, typename T, typename E1, bool Stateless>
-KFR_INTRINSIC void end_pass(const expression_iir<filters, T, E1, Stateless>& self, shape<1> start, shape<1> stop)
+KFR_INTRINSIC void end_pass(const expression_iir<filters, T, E1, Stateless>& self, shape<1> start,
+                            shape<1> stop)
 {
     self.state->state = self.state->saved_state;
 }
@@ -411,77 +406,27 @@ KFR_FUNCTION expression_iir<filters, T, E1, true> iir(E1&& e1,
     return expression_iir<filters, T, E1, true>(std::forward<E1>(e1), state);
 }
 
-#define KFR_BIQUAD_DEPRECATED                                                                                \
-    [[deprecated("biquad(param, expr) prototype is deprecated. Use iir(expr, param) with swapped "           \
-                 "arguments")]]
-
 /**
- * @brief Returns template expressions that applies biquad filter to the input.
- * @param bq Biquad coefficients
- * @param e1 Input expression
+ * @brief Applies forward and backward filtering to the input array using the given IIR filter parameters.
+ *
+ * This function performs zero-phase filtering by first applying the IIR filter in the forward direction
+ * and then applying it again in the reverse direction. The result is a filtered signal with minimal phase
+ * distortion.
+ *
+ * @tparam T The data type of the elements in the input array.
+ * @tparam Tag The tag type associated with the input array.
+ * @tparam Itag The tag type associated with the IIR filter parameters.
+ *
+ * @param arr The input array to be filtered. This array is modified in-place to store the filtered result.
+ * @param params The IIR filter parameters used for filtering the input array.
  */
-template <typename T, typename E1>
-KFR_BIQUAD_DEPRECATED KFR_FUNCTION expression_iir<1, T, E1> biquad(const biquad_section<T>& bq, E1&& e1)
+template <typename T, univector_tag Tag, size_t Itag>
+KFR_FUNCTION void filtfilt(univector<T, Tag>& arr, const iir_params<T, Itag>& params)
 {
-    const biquad_section<T> bqs[1] = { bq };
-    return expression_iir<1, T, E1>(std::forward<E1>(e1), iir_state{ iir_params{ bqs } });
-}
-
-/**
- * @brief Returns template expressions that applies cascade of biquad filters to the input.
- * @param bq Array of biquad coefficients
- * @param e1 Input expression
- * @note This implementation introduces delay of N - 1 samples, where N is the filter count.
- */
-template <size_t filters, typename T, typename E1>
-KFR_BIQUAD_DEPRECATED KFR_FUNCTION expression_iir_l<filters, T, E1> biquad_l(
-    const biquad_section<T> (&bq)[filters], E1&& e1)
-{
-    return expression_iir_l<filters, T, E1>(std::forward<E1>(e1), iir_state{ iir_params{ bq } });
-}
-
-/**
- * @brief Returns template expressions that applies cascade of biquad filters to the input.
- * @param bq Array of biquad coefficients
- * @param e1 Input expression
- * @note This implementation has zero latency
- */
-template <size_t filters, typename T, typename E1>
-KFR_BIQUAD_DEPRECATED KFR_FUNCTION expression_iir<filters, T, E1> biquad(
-    const biquad_section<T> (&bq)[filters], E1&& e1)
-{
-    return expression_iir<filters, T, E1>(std::forward<E1>(e1), iir_state{ iir_params{ bq } });
-}
-
-/**
- * @brief Returns template expressions that applies cascade of biquad filters to the input.
- * @param bq Array of biquad coefficients
- * @param e1 Input expression
- * @note This implementation has zero latency
- */
-template <size_t maxfiltercount = 4, typename T, typename E1>
-KFR_BIQUAD_DEPRECATED KFR_FUNCTION expression_handle<T, 1> biquad(const biquad_section<T>* bq, size_t count,
-                                                                  E1&& e1)
-{
-    KFR_LOGIC_CHECK(next_poweroftwo(count) <= maxfiltercount,
-                    "biquad: too many biquad sections. Use higher maxfiltercount");
-    return cswitch(
-        cfilter(internal_generic::biquad_sizes, internal_generic::biquad_sizes <= csize_t<maxfiltercount>{}),
-        next_poweroftwo(count),
-        [&](auto x)
-        {
-            constexpr size_t filters = x;
-            return to_handle(expression_iir<filters, T, E1>(std::forward<E1>(e1),
-                                                            iir_state{ iir_params<T, filters>(bq, count) }));
-        },
-        [&] { return to_handle(fixshape(zeros<T>(), fixed_shape<infinite_size>)); });
-}
-
-template <size_t maxfiltercount = 4, typename T, typename E1>
-KFR_BIQUAD_DEPRECATED KFR_FUNCTION expression_handle<T, 1> biquad(const std::vector<biquad_section<T>>& bq,
-                                                                  E1&& e1)
-{
-    return biquad<maxfiltercount>(bq.data(), bq.size(), std::forward<E1>(e1));
+    // Forward pass
+    arr = iir(arr, params);
+    // Backward pass
+    process(reverse(arr), iir(reverse(arr), params));
 }
 
 template <size_t filters, typename T, typename E1>
@@ -490,27 +435,12 @@ using expression_biquads_l = expression_iir_l<filters, T, E1>;
 template <size_t filters, typename T, typename E1>
 using expression_biquads = expression_iir<filters, T, E1>;
 
-} // namespace CMT_ARCH_NAME
-
-template <typename T>
-using biquad_params [[deprecated("biquad_params is deprecated. Use biquad_section")]] = biquad_section<T>;
-
-template <typename T, size_t filters = tag_dynamic_vector>
-using biquad_blocks [[deprecated("biquad_blocks is deprecated. Use iir_params")]] = iir_params<T, filters>;
+} // namespace KFR_ARCH_NAME
 
 template <typename T>
 class iir_filter : public expression_filter<T>
 {
 public:
     iir_filter(const iir_params<T>& params);
-
-    [[deprecated("iir_filter(bq, count) is deprecated. Use iir_filter(iir_params{bq, count})")]] iir_filter(
-        const biquad_section<T>* bq, size_t count)
-        : iir_filter(iir_params<T>(bq, count))
-    {
-    }
 };
-
-template <typename T>
-using biquad_filter [[deprecated("biquad_filter is deprecated. Use iir_filter")]] = iir_filter<T>;
 } // namespace kfr

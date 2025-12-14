@@ -2,7 +2,7 @@
  *  @{
  */
 /*
-  Copyright (C) 2016-2023 Dan Cazarin (https://www.kfrlib.com)
+  Copyright (C) 2016-2025 Dan Casarin (https://www.kfrlib.com)
   This file is part of KFR
 
   KFR is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
  */
 #pragma once
 
-#include "../cometa/memory.hpp"
+#include "../meta/memory.hpp"
 #include "../simd/vec.hpp"
 #include "basic_expressions.hpp"
 #include <memory>
@@ -48,7 +48,7 @@ struct expand_cvals<T, Tpl, cvals_t<T, vals...>>
     using type = Tpl<vals...>;
 };
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 namespace internal
@@ -58,7 +58,7 @@ template <typename Expression, typename T, index_t Dims, size_t key = 0>
 KFR_INTRINSIC bool invoke_substitute(Expression& expr, expression_handle<T, Dims> new_handle,
                                      csize_t<key> = {});
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 template <typename T, index_t Dims>
 struct expression_vtable
@@ -87,10 +87,10 @@ struct expression_vtable
         fn_begin_pass = &static_begin_pass<Expression>;
         fn_end_pass   = &static_end_pass<Expression>;
         cforeach(csizeseq<Nsizes>,
-                 [&](auto size_) CMT_INLINE_LAMBDA
+                 [&](auto size_) KFR_INLINE_LAMBDA
                  {
                      cforeach(csizeseq<Dims>,
-                              [&](auto axis_) CMT_INLINE_LAMBDA
+                              [&](auto axis_) KFR_INLINE_LAMBDA
                               {
                                   constexpr size_t size = decltype(size_)::value;
                                   constexpr size_t axis = decltype(axis_)::value;
@@ -109,9 +109,6 @@ struct expression_vtable
         {
             write(dest, get_elements(*static_cast<Expression*>(instance), index, axis_params_v<VecAxis, N>));
         }
-        else
-        {
-        }
     }
     template <typename Expression, size_t N, index_t VecAxis>
     static void static_set_elements(void* instance, shape<Dims> index, const T* src)
@@ -119,9 +116,6 @@ struct expression_vtable
         if constexpr (is_output_expression<Expression>)
         {
             set_elements(*static_cast<Expression*>(instance), index, axis_params_v<VecAxis, N>, read<N>(src));
-        }
-        else
-        {
         }
     }
     template <typename Expression>
@@ -155,13 +149,13 @@ struct expression_resource
 template <typename E>
 struct expression_resource_impl : expression_resource
 {
-    expression_resource_impl(E&& e) CMT_NOEXCEPT : e(std::move(e)) {}
+    expression_resource_impl(E&& e) noexcept : e(std::move(e)) {}
     virtual ~expression_resource_impl() {}
     KFR_INTRINSIC virtual void* instance() override final { return &e; }
 
 public:
 #ifdef __cpp_aligned_new
-    static void operator delete(void* p, std::align_val_t al) noexcept { details::aligned_release(p); }
+    static void operator delete(void* p, std::align_val_t al) noexcept { details::aligned_free(p); }
 #endif
 
 private:
@@ -183,7 +177,7 @@ struct expression_handle
     const expression_vtable<T, Dims>* vtable;
     std::shared_ptr<expression_resource> resource;
 
-    expression_handle() CMT_NOEXCEPT : instance(nullptr), vtable(nullptr) {}
+    expression_handle() noexcept : instance(nullptr), vtable(nullptr) {}
     expression_handle(const void* instance, const expression_vtable<T, Dims>* vtable,
                       std::shared_ptr<expression_resource> resource = nullptr)
         : instance(const_cast<void*>(instance)), vtable(vtable), resource(std::move(resource))
@@ -214,7 +208,7 @@ struct expression_traits<expression_handle<T, Dims>> : expression_traits_default
     constexpr static inline bool random_access = false;
 };
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, index_t NDims>
@@ -251,7 +245,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_handle<T, NDims>& self, co
 
 template <typename T, index_t NDims, index_t Axis, size_t N>
 KFR_INTRINSIC void set_elements(const expression_handle<T, NDims>& self, const shape<NDims>& index,
-                                const axis_params<Axis, N>& sh, const identity<vec<T, N>>& value)
+                                const axis_params<Axis, N>& sh, const std::type_identity_t<vec<T, N>>& value)
 {
     static_assert(is_poweroftwo(N) && N >= 1);
     constexpr size_t Nsize = ilog2(N);
@@ -267,9 +261,9 @@ KFR_INTRINSIC void set_elements(const expression_handle<T, NDims>& self, const s
         self.vtable->fn_set_elements[Axis][Nsize](self.instance, index, &value.front());
     }
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 namespace internal
@@ -283,7 +277,7 @@ KFR_INTRINSIC expression_vtable<T, Dims>* make_expression_vtable()
 }
 } // namespace internal
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 /** @brief Converts the given expression into an opaque object.
  *  This overload takes reference to the expression.
@@ -312,8 +306,8 @@ template <typename T, index_t Dims = 1, size_t Key = 0>
 struct expression_placeholder
 {
 public:
-    using value_type                      = T;
-    expression_placeholder() CMT_NOEXCEPT = default;
+    using value_type                  = T;
+    expression_placeholder() noexcept = default;
     expression_handle<T, Dims> handle;
 };
 
@@ -329,7 +323,7 @@ struct expression_traits<expression_placeholder<T, Dims, Key>> : public expressi
     constexpr static shape<dims> get_shape() { return shape<dims>(undefined_size); }
 };
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 
 template <typename T, index_t Dims, size_t Key, index_t VecAxis, size_t N>
@@ -338,7 +332,7 @@ KFR_INTRINSIC vec<T, N> get_elements(const expression_placeholder<T, Dims, Key>&
 {
     return self.handle ? get_elements(self.handle, index, sh) : 0;
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 template <typename T, index_t Dims = 1, size_t Key = 0>
 KFR_INTRINSIC expression_placeholder<T, Dims, Key> placeholder(csize_t<Key> = csize_t<Key>{})
@@ -352,7 +346,7 @@ KFR_INTRINSIC bool substitute(const internal_generic::anything&, Args&&...)
     return false;
 }
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 namespace internal
 {
@@ -361,7 +355,7 @@ KFR_INTRINSIC bool substitute_helper(expression_with_arguments<Args...>& expr,
                                      expression_handle<T, Dims> new_handle, csize_t<Key>,
                                      csizes_t<indices...>);
 }
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 template <typename T, index_t Dims, size_t Key = 0>
 KFR_INTRINSIC bool substitute(expression_placeholder<T, Dims, Key>& expr,
@@ -386,7 +380,7 @@ KFR_INTRINSIC bool substitute(expression_handle<T, Dims>& expr, expression_handl
     return expr.substitute(std::move(new_handle));
 }
 
-inline namespace CMT_ARCH_NAME
+inline namespace KFR_ARCH_NAME
 {
 namespace internal
 {
@@ -407,6 +401,6 @@ KFR_INTRINSIC bool invoke_substitute(Expression& expr, expression_handle<T, Dims
 
 } // namespace internal
 
-} // namespace CMT_ARCH_NAME
+} // namespace KFR_ARCH_NAME
 
 } // namespace kfr
